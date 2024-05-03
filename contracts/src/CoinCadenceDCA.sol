@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.6;
 
-import "../lib/v3-periphery-foundry/contracts/SwapRouter.sol";
+import "../lib/v3-periphery-foundry/contracts/interfaces/ISwapRouter.sol";
 
 contract CoinCadenceDCA {
     ISwapRouter router;
+
     /**
      *
      * How will we charge users for the gas of the swap?
@@ -18,7 +19,6 @@ contract CoinCadenceDCA {
      * @param slippage slippage in percentage
      * @param gasLimit gas limit for the transaction
      */
-
     function investFromWallet(
         address from,
         address to,
