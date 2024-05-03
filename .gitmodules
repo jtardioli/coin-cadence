@@ -4,3 +4,6 @@
 [submodule "contracts/lib/v3-periphery-foundry"]
 	path = contracts/lib/v3-periphery-foundry
 	url = https://github.com/gakonst/v3-periphery-foundry
+[submodule "contracts/lib/v3-core"]
+	path = contracts/lib/v3-core
+	url = https://github.com/Uniswap/v3-core
