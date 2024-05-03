@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.6;
 
-import "../lib/v3-periphery-foundry/contracts/interfaces/ISwapRouter.sol";
+import "../lib/v3-periphery-foundry/contracts/SwapRouter.sol";
 
 contract CoinCadenceDCA {
     ISwapRouter router;
