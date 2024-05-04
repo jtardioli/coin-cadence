@@ -5,7 +5,12 @@ pragma abicoder v2;
 import {ISwapRouter} from "../lib/v3-periphery-foundry/contracts/interfaces/ISwapRouter.sol";
 import {TransferHelper} from "../lib/v3-periphery-foundry/contracts/libraries/TransferHelper.sol";
 
-// DONT FOR GET TO LOOK INTO PRICE ORACLE TO NOT GET FRONT RUN
+/* 
+    1. Need to investigate how to not get frontrun on the swap
+    2. Does the exact input single function work if no pool exists for the token pair?
+    3. Handle if user did not approve enough of the token
+    4. handle if user does not have enough balance in thier wallet
+ */
 contract CoinCadenceDCA {
     ISwapRouter public immutable swapRouter;
 
@@ -39,7 +44,7 @@ contract CoinCadenceDCA {
             recipient: recipient,
             deadline: block.timestamp,
             amountIn: amountIn,
-            amountOutMinimum: 0,
+            amountOutMinimum: 0, // user price oracle to get this value
             sqrtPriceLimitX96: 0
         });
 
