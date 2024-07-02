@@ -18,9 +18,14 @@
     "@types/cors": "^2.8.17",
     "@types/helmet": "^4.0.0",
     "@types/morgan": "^1.9.9",
+    "@uniswap/sdk-core": "^5.3.1",
+    "@uniswap/smart-order-router": "^3.35.11",
+    "@uniswap/v3-sdk": "^3.13.1",
     "cors": "^2.8.5",
+    "ethers": "^5.0.0",
     "express": "^4.19.2",
     "helmet": "^7.1.0",
+    "jsbi": "^4.3.0",
     "morgan": "^1.10.0",
     "ts-node-dev": "^2.0.0"
   }
