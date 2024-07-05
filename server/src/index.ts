@@ -27,37 +27,7 @@ app.use(helmet());
 app.use(express.json());
 app.use(morgan("dev"));
 
-export const V3_SWAP_ROUTER_ADDRESS =
-  "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45";
-export const WETH_CONTRACT_ADDRESS =
-  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
-
-// Currencies and Tokens
-
-export const USDC_TOKEN = new Token(
-  ChainId.MAINNET,
-  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-  6,
-  "USDC",
-  "USD//C"
-);
-
-export const DAI_TOKEN = new Token(
-  ChainId.MAINNET,
-  "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-  18,
-  "DAI",
-  "Dai Stablecoin"
-);
-
-export const WETH_TOKEN = new Token(
-  ChainId.MAINNET,
-  "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-  18,
-  "WETH",
-  "Wrapped Ether"
-);
-
+// Sets if the example should run locally or on chain
 export enum Environment {
   LOCAL,
   WALLET_EXTENSION,
@@ -82,8 +52,31 @@ export interface ExampleConfig {
   };
 }
 
+export const WETH_TOKEN = new Token(
+  ChainId.MAINNET, // not using SupportedChainId.MAINNET,
+  "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  18,
+  "WETH",
+  "Wrapped Ether"
+);
+export const WBTC_TOKEN = new Token(
+  ChainId.MAINNET, // not using SupportedChainId.MAINNET,
+  "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+  8,
+  "WBTC",
+  "Wrapped BTC"
+);
+
+export const USDC_TOKEN = new Token(
+  ChainId.MAINNET, // not using SupportedChainId.MAINNET
+  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+  6,
+  "USDC",
+  "USD//C"
+);
+
 export const CurrentConfig: ExampleConfig = {
-  env: Environment.LOCAL,
+  env: Environment.MAINNET,
   rpc: {
     local: "http://localhost:8545",
     mainnet: "",
@@ -94,7 +87,8 @@ export const CurrentConfig: ExampleConfig = {
       "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
   },
   tokens: {
-    in: WETH_TOKEN,
+    // in: WETH_TOKEN,
+    in: WBTC_TOKEN,
     amountIn: 1,
     out: USDC_TOKEN,
   },
@@ -124,11 +118,9 @@ app.get("/", async (req, res) => {
 });
 
 app.get("/api/v1", async (req, res) => {
-  const rpcUrl = process.env.MAINNET_RPC_URL;
-
-  console.log({ rpcUrl });
-
-  const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+  const provider = new ethers.providers.JsonRpcProvider(
+    process.env.MAINNET_RPC_URL
+  );
 
   const router = new AlphaRouter({
     chainId: ChainId.MAINNET,
@@ -136,60 +128,26 @@ app.get("/api/v1", async (req, res) => {
   });
 
   const options: SwapOptionsSwapRouter02 = {
-    recipient: "0xBDb52CAF713b0371e859Fb9d6b9F9b537daB93d1",
+    recipient: CurrentConfig.wallet.address,
     slippageTolerance: new Percent(50, 10_000),
     deadline: Math.floor(Date.now() / 1000 + 1800),
     type: SwapType.SWAP_ROUTER_02,
   };
 
-  const readableAmount = fromReadableAmount(
-    CurrentConfig.tokens.amountIn,
-    CurrentConfig.tokens.in.decimals
-  ).toString();
-
-  const amount = CurrencyAmount.fromRawAmount(
-    CurrentConfig.tokens.in,
-    readableAmount
+  const route = await router.route(
+    CurrencyAmount.fromRawAmount(
+      CurrentConfig.tokens.in,
+      fromReadableAmount(
+        CurrentConfig.tokens.amountIn,
+        CurrentConfig.tokens.in.decimals
+      ).toString()
+    ),
+    CurrentConfig.tokens.out,
+    TradeType.EXACT_INPUT,
+    options
   );
 
-  try {
-    const route = await router.route(
-      amount,
-      CurrentConfig.tokens.out,
-      TradeType.EXACT_INPUT,
-      options
-    );
-
-    if (!route || !route.methodParameters) {
-      console.log("No route found");
-    }
-
-    console.log({ route });
-  } catch (error) {
-    console.log({ error });
-  }
-
-  // const wallet = new ethers.Wallet(privateKey, provider);
-  // const tokenContract = new ethers.Contract(
-  //   CurrentConfig.tokens.in.address,
-  //   ERC20ABI,
-  //   wallet
-  // );
-  // const tokenApproval = await tokenContract.approve(
-  //   V3_SWAP_ROUTER_ADDRESS,
-  //   ethers.BigNumber.from(rawTokenAmountIn.toString())
-  // );
-
-  // const txRes = await wallet.sendTransaction({
-  //   data: route.methodParameters.calldata,
-  //   to: V3_SWAP_ROUTER_ADDRESS,
-  //   value: route.methodParameters.value,
-  //   from: wallet.address,
-  //   maxFeePerGas: MAX_FEE_PER_GAS,
-  //   maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
-  // })
-
-  res.send("Application is running");
+  res.send(route);
 });
 
 app.listen(PORT, () => {
