@@ -16,6 +16,8 @@ import {
   type SwapOptionsSwapRouter02,
 } from "@uniswap/smart-order-router";
 import JSBI from "jsbi";
+import { symbolName } from "typescript";
+import type { Pool } from "@uniswap/v3-sdk";
 // import { JsonRpcApiProvider } from "ethers";
 
 const app = express();
@@ -117,7 +119,16 @@ app.get("/", async (req, res) => {
   res.send("Application is running");
 });
 
+const PoolFeeToTickSpacing = {
+  100: 1,
+  500: 10,
+  3000: 60,
+  10000: 200,
+};
+
 app.get("/api/v1", async (req, res) => {
+  // https://uniswapv3book.com/milestone_4/path.html?highlight=path#swap-path
+  // https://support.uniswap.org/hc/en-us/articles/21069524840589-What-is-a-tick-when-providing-liquidity
   const provider = new ethers.providers.JsonRpcProvider(
     process.env.MAINNET_RPC_URL
   );
@@ -147,7 +158,38 @@ app.get("/api/v1", async (req, res) => {
     options
   );
 
-  res.send(route);
+  if (!route || !route.methodParameters) {
+    throw new Error("Route not found");
+  }
+
+  const poolsByTokenPair: Record<string, Pool> = {};
+  route.trade.swaps[0].route.pools.forEach((pool) => {
+    const tokenPairKey = `${pool.token0.address}-${pool.token1.address}`;
+    const reversedTokenPairKey = `${pool.token1.address}-${pool.token0.address}`;
+
+    poolsByTokenPair[tokenPairKey] = pool as Pool;
+    poolsByTokenPair[reversedTokenPairKey] = pool as Pool;
+  });
+
+  const tokenPath = route.trade.swaps[0].route.tokenPath;
+  const path = [];
+  for (let i = 0; i < tokenPath.length; i++) {
+    const lastToken = i === tokenPath.length - 1;
+
+    const token1 = tokenPath[i];
+    const token2 = tokenPath[i + 1];
+    path.push(token1.address);
+
+    if (!lastToken) {
+      const tokenPairKey = `${token1.address}-${token2.address}`;
+      const pool = poolsByTokenPair[tokenPairKey];
+      path.push(PoolFeeToTickSpacing[pool.fee]);
+    }
+  }
+
+  console.log(path);
+
+  res.send(path);
 });
 
 app.listen(PORT, () => {
