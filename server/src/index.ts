@@ -18,6 +18,11 @@ import {
 import JSBI from "jsbi";
 import { symbolName } from "typescript";
 import type { Pool } from "@uniswap/v3-sdk";
+import {
+  fetchSwapRoute,
+  getSwapPath,
+  type FetchSwapRouteConfig,
+} from "./services/uniswapV3";
 // import { JsonRpcApiProvider } from "ethers";
 
 const app = express();
@@ -68,6 +73,13 @@ export const WBTC_TOKEN = new Token(
   "WBTC",
   "Wrapped BTC"
 );
+export const STETH_TOKEN = new Token(
+  ChainId.MAINNET, // not using SupportedChainId.MAINNET,
+  "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
+  8,
+  "STETH",
+  "Staked Ether"
+);
 
 export const USDC_TOKEN = new Token(
   ChainId.MAINNET, // not using SupportedChainId.MAINNET
@@ -96,98 +108,26 @@ export const CurrentConfig: ExampleConfig = {
   },
 };
 
-function countDecimals(x: number) {
-  if (Math.floor(x) === x) {
-    return 0;
-  }
-  return x.toString().split(".")[1].length || 0;
-}
-
-function fromReadableAmount(amount: number, decimals: number): JSBI {
-  const extraDigits = Math.pow(10, countDecimals(amount));
-  const adjustedAmount = amount * extraDigits;
-  return JSBI.divide(
-    JSBI.multiply(
-      JSBI.BigInt(adjustedAmount),
-      JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(decimals))
-    ),
-    JSBI.BigInt(extraDigits)
-  );
-}
-
 app.get("/", async (req, res) => {
   res.send("Application is running");
 });
 
-const PoolFeeToTickSpacing = {
-  100: 1,
-  500: 10,
-  3000: 60,
-  10000: 200,
-};
-
 app.get("/api/v1", async (req, res) => {
   // https://uniswapv3book.com/milestone_4/path.html?highlight=path#swap-path
   // https://support.uniswap.org/hc/en-us/articles/21069524840589-What-is-a-tick-when-providing-liquidity
-  const provider = new ethers.providers.JsonRpcProvider(
-    process.env.MAINNET_RPC_URL
-  );
 
-  const router = new AlphaRouter({
+  const config: FetchSwapRouteConfig = {
+    rpcUrl: process.env.MAINNET_RPC_URL as string,
     chainId: ChainId.MAINNET,
-    provider: provider,
-  });
-
-  const options: SwapOptionsSwapRouter02 = {
-    recipient: CurrentConfig.wallet.address,
-    slippageTolerance: new Percent(50, 10_000),
-    deadline: Math.floor(Date.now() / 1000 + 1800),
-    type: SwapType.SWAP_ROUTER_02,
+    recipientAddress: "0xBDb52CAF713b0371e859Fb9d6b9F9b537daB93d1",
+    tokens: {
+      in: WBTC_TOKEN,
+      amountIn: 1,
+      out: USDC_TOKEN,
+    },
   };
 
-  const route = await router.route(
-    CurrencyAmount.fromRawAmount(
-      CurrentConfig.tokens.in,
-      fromReadableAmount(
-        CurrentConfig.tokens.amountIn,
-        CurrentConfig.tokens.in.decimals
-      ).toString()
-    ),
-    CurrentConfig.tokens.out,
-    TradeType.EXACT_INPUT,
-    options
-  );
-
-  if (!route || !route.methodParameters) {
-    throw new Error("Route not found");
-  }
-
-  const poolsByTokenPair: Record<string, Pool> = {};
-  route.trade.swaps[0].route.pools.forEach((pool) => {
-    const tokenPairKey = `${pool.token0.address}-${pool.token1.address}`;
-    const reversedTokenPairKey = `${pool.token1.address}-${pool.token0.address}`;
-
-    poolsByTokenPair[tokenPairKey] = pool as Pool;
-    poolsByTokenPair[reversedTokenPairKey] = pool as Pool;
-  });
-
-  const tokenPath = route.trade.swaps[0].route.tokenPath;
-  const path = [];
-  for (let i = 0; i < tokenPath.length; i++) {
-    const lastToken = i === tokenPath.length - 1;
-
-    const token1 = tokenPath[i];
-    const token2 = tokenPath[i + 1];
-    path.push(token1.address);
-
-    if (!lastToken) {
-      const tokenPairKey = `${token1.address}-${token2.address}`;
-      const pool = poolsByTokenPair[tokenPairKey];
-      path.push(PoolFeeToTickSpacing[pool.fee]);
-    }
-  }
-
-  console.log(path);
+  const path = await getSwapPath(config);
 
   res.send(path);
 });
