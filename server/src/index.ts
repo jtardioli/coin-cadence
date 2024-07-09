@@ -2,28 +2,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import {
-  Percent,
-  Token,
-  TradeType,
-  CurrencyAmount,
-  ChainId,
-} from "@uniswap/sdk-core";
-import { ethers } from "ethers";
-import {
-  AlphaRouter,
-  SwapType,
-  type SwapOptionsSwapRouter02,
-} from "@uniswap/smart-order-router";
-import JSBI from "jsbi";
-import { symbolName } from "typescript";
-import type { Pool } from "@uniswap/v3-sdk";
-import {
-  fetchSwapRoute,
-  getSwapPath,
-  type FetchSwapRouteConfig,
-} from "./services/uniswapV3";
-// import { JsonRpcApiProvider } from "ethers";
+import { Token, ChainId } from "@uniswap/sdk-core";
+import { getSwapPath, type FetchSwapRouteConfig } from "./services/uniswapV3";
 
 const app = express();
 
@@ -34,51 +14,12 @@ app.use(helmet());
 app.use(express.json());
 app.use(morgan("dev"));
 
-// Sets if the example should run locally or on chain
-export enum Environment {
-  LOCAL,
-  WALLET_EXTENSION,
-  MAINNET,
-}
-
-// Inputs that configure this example to run
-export interface ExampleConfig {
-  env: Environment;
-  rpc: {
-    local: string;
-    mainnet: string;
-  };
-  wallet: {
-    address: string;
-    privateKey: string;
-  };
-  tokens: {
-    in: Token;
-    amountIn: number;
-    out: Token;
-  };
-}
-
-export const WETH_TOKEN = new Token(
-  ChainId.MAINNET, // not using SupportedChainId.MAINNET,
-  "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-  18,
-  "WETH",
-  "Wrapped Ether"
-);
 export const WBTC_TOKEN = new Token(
   ChainId.MAINNET, // not using SupportedChainId.MAINNET,
   "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
   8,
   "WBTC",
   "Wrapped BTC"
-);
-export const STETH_TOKEN = new Token(
-  ChainId.MAINNET, // not using SupportedChainId.MAINNET,
-  "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
-  8,
-  "STETH",
-  "Staked Ether"
 );
 
 export const USDC_TOKEN = new Token(
@@ -88,25 +29,6 @@ export const USDC_TOKEN = new Token(
   "USDC",
   "USD//C"
 );
-
-export const CurrentConfig: ExampleConfig = {
-  env: Environment.MAINNET,
-  rpc: {
-    local: "http://localhost:8545",
-    mainnet: "",
-  },
-  wallet: {
-    address: "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-    privateKey:
-      "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-  },
-  tokens: {
-    // in: WETH_TOKEN,
-    in: WBTC_TOKEN,
-    amountIn: 1,
-    out: USDC_TOKEN,
-  },
-};
 
 app.get("/", async (req, res) => {
   res.send("Application is running");

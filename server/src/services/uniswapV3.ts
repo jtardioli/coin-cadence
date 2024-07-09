@@ -40,13 +40,6 @@ export const PoolFeeToTickSpacing = {
   10000: 200,
 };
 
-export const WETH_TOKEN = new Token(
-  ChainId.MAINNET, // not using SupportedChainId.MAINNET,
-  "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-  18,
-  "WETH",
-  "Wrapped Ether"
-);
 export const WBTC_TOKEN = new Token(
   ChainId.MAINNET, // not using SupportedChainId.MAINNET,
   "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
