@@ -14,41 +14,59 @@ import {TransferHelper} from "../lib/v3-periphery-foundry/contracts/libraries/Tr
 contract CoinCadenceDCA {
     ISwapRouter public immutable swapRouter;
 
-    // For this example, we will set the pool fee to 0.3%.
-    uint24 public constant poolFee = 3000;
-
-    constructor(ISwapRouter _swapRouter) {
-        swapRouter = _swapRouter;
+    constructor(address _swapRouterAddress) {
+        require(_swapRouterAddress != address(0), "Invalid address");
+        swapRouter = ISwapRouter(_swapRouterAddress);
     }
 
-    /// @notice swapExactInputSingle swaps a fixed amount of inputToken for a maximum possible amount of outputToken
-    /// using the inputToken/outputToken 0.3% pool by calling `exactInputSingle` in the swap router.
-    /// @dev The calling address must approve this contract to spend at least `amountIn` worth of its inputToken for this function to succeed.
-    /// @param amountIn The exact amount of inputToken that will be swapped for outputToken.
-    /// @return amountOut The amount of outputToken received.
-    function swapExactInputSingle(address inputToken, address outputToken, address recipient, uint256 amountIn)
-        external
-        returns (uint256 amountOut)
-    {
-        // Transfer the specified amount of inputToken to this contract.
-        TransferHelper.safeTransferFrom(inputToken, msg.sender, address(this), amountIn);
+    // struct ExactInputParams {
+    //     bytes path;
+    //     address recipient;
+    //     uint256 deadline;
+    //     uint256 amountIn;
+    //     uint256 amountOutMinimum;
+    // }
 
-        // Approve the router to spend inputToken.
-        TransferHelper.safeApprove(inputToken, address(swapRouter), amountIn);
-        // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
-        // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
-        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
-            tokenIn: inputToken,
-            tokenOut: outputToken,
-            fee: poolFee,
-            recipient: recipient,
-            deadline: block.timestamp,
-            amountIn: amountIn,
-            amountOutMinimum: 0, // user price oracle to get this value
-            sqrtPriceLimitX96: 0
-        });
+    function exactInput(ISwapRouter.ExactInputParams calldata params) external returns (address amountOut) {
+        address inputToken = extractFirstAddress(params.path);
+        // TransferHelper.safeTransferFrom(inputToken, msg.sender, address(this), params.amountIn);
 
-        // The call to `exactInputSingle` executes the swap.
-        amountOut = swapRouter.exactInputSingle(params);
+        return inputToken;
     }
+
+    function extractFirstAddress(bytes memory path) public pure returns (address) {
+        require(path.length >= 20, "Path too short to contain an address");
+        address firstAddress;
+        assembly {
+            firstAddress := div(mload(add(path, 32)), 0x1000000000000000000000000)
+        }
+
+        return firstAddress;
+    }
+
+    // function swapExactInputSingle(address inputToken, address outputToken, address recipient, uint256 amountIn)
+    //     external
+    //     returns (uint256 amountOut)
+    // {
+    //     // Transfer the specified amount of inputToken to this contract.
+    //     TransferHelper.safeTransferFrom(inputToken, msg.sender, address(this), amountIn);
+
+    //     // Approve the router to spend inputToken.
+    //     TransferHelper.safeApprove(inputToken, address(swapRouter), amountIn);
+    //     // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
+    //     // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
+    //     ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
+    //         tokenIn: inputToken,
+    //         tokenOut: outputToken,
+    //         fee: poolFee,
+    //         recipient: recipient,
+    //         deadline: block.timestamp,
+    //         amountIn: amountIn,
+    //         amountOutMinimum: 0, // user price oracle to get this value
+    //         sqrtPriceLimitX96: 0
+    //     });
+
+    //     // The call to `exactInputSingle` executes the swap.
+    //     amountOut = swapRouter.exactInputSingle(params);
+    // }
 }
