@@ -17,10 +17,10 @@ contract CoinCadenceDCATest is Test {
         coinCadenceDCA = new CoinCadenceDCA(swapRouterAddr);
     }
 
-    function testDeployment() public {
+    function test() public {
         address amount = coinCadenceDCA.exactInput(
             ISwapRouter.ExactInputParams({
-                path: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C59900000aC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc200000aA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                path: hex"2260FAC5E5542a773Aa44fBCfeDf7C193bc2C59900000aC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc200000aA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                 recipient: user,
                 deadline: 0,
                 amountIn: 5,
@@ -28,6 +28,6 @@ contract CoinCadenceDCATest is Test {
             })
         );
 
-        console.log("amount", amount);
+        console.log(amount);
     }
 }

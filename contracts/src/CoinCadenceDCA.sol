@@ -4,6 +4,7 @@ pragma abicoder v2;
 
 import {ISwapRouter} from "../lib/v3-periphery-foundry/contracts/interfaces/ISwapRouter.sol";
 import {TransferHelper} from "../lib/v3-periphery-foundry/contracts/libraries/TransferHelper.sol";
+import {Path} from "../lib/v3-periphery-foundry/contracts/libraries/Path.sol";
 
 /* 
     1. Need to investigate how to not get frontrun on the swap
@@ -28,19 +29,20 @@ contract CoinCadenceDCA {
     // }
 
     function exactInput(ISwapRouter.ExactInputParams calldata params) external returns (address amountOut) {
-        address inputToken = extractFirstAddress(params.path);
-        // TransferHelper.safeTransferFrom(inputToken, msg.sender, address(this), params.amountIn);
+        address inputToken = getFirstAddress(params.path);
+
+        TransferHelper.safeTransferFrom(inputToken, msg.sender, address(this), params.amountIn);
+        // TransferHelper.safeApprove(inputToken, address(swapRouter), params.amountIn);
 
         return inputToken;
     }
 
-    function extractFirstAddress(bytes memory path) public pure returns (address) {
-        require(path.length >= 20, "Path too short to contain an address");
+    function getFirstAddress(bytes calldata path) public pure returns (address) {
+        require(path.length >= 20, "Path too short");
         address firstAddress;
         assembly {
-            firstAddress := div(mload(add(path, 32)), 0x1000000000000000000000000)
+            firstAddress := shr(96, calldataload(add(path.offset, 0)))
         }
-
         return firstAddress;
     }
 
