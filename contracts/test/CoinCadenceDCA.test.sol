@@ -18,6 +18,9 @@ contract CoinCadenceDCATest is Test {
     }
 
     function test() public {
+        address alice = makeAddr("alice");
+        emit log_address(alice);
+        vm.deal(alice, 1 ether);
         address amount = coinCadenceDCA.exactInput(
             ISwapRouter.ExactInputParams({
                 path: hex"2260FAC5E5542a773Aa44fBCfeDf7C193bc2C59900000aC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc200000aA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
