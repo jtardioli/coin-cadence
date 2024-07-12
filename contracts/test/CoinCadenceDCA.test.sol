@@ -5,12 +5,14 @@ pragma abicoder v2;
 import {ISwapRouter} from "../lib/v3-periphery-foundry/contracts/interfaces/ISwapRouter.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {CoinCadenceDCA} from "../src/CoinCadenceDCA.sol";
+import {IERC20} from "../lib/openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 
 contract CoinCadenceDCATest is Test {
     address public user = makeAddr("user");
 
     address public swapRouterAddr = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address public wethAddress = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+    IERC20 public weth = IERC20(wethAddress);
 
     CoinCadenceDCA coinCadenceDCA;
 
