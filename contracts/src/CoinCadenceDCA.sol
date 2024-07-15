@@ -32,7 +32,7 @@ contract CoinCadenceDCA {
         address inputToken = getFirstAddress(params.path);
 
         TransferHelper.safeTransferFrom(inputToken, msg.sender, address(this), params.amountIn);
-        // TransferHelper.safeApprove(inputToken, address(swapRouter), params.amountIn);
+        TransferHelper.safeApprove(inputToken, address(swapRouter), params.amountIn);
 
         return inputToken;
     }

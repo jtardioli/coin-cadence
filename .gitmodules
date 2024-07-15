@@ -4,6 +4,4 @@
 [submodule "contracts/lib/v3-periphery-foundry"]
 	path = contracts/lib/v3-periphery-foundry
 	url = https://github.com/gakonst/v3-periphery-foundry
-[submodule "contracts/lib/openzeppelin-contracts"]
-	path = contracts/lib/openzeppelin-contracts
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+
