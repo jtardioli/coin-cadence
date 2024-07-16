@@ -138,7 +138,8 @@ function processRoute(route: SwapRoute) {
     if (!lastToken) {
       const tokenPairKey = `${token1.address}-${token2.address}`;
       const pool = poolsByTokenPair[tokenPairKey];
-      pathParts.push(numberToBytes3(PoolFeeToTickSpacing[pool.fee]));
+      console.log(pool.fee);
+      pathParts.push(numberToBytes3(pool.fee));
     }
   }
 
