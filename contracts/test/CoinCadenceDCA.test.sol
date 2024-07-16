@@ -44,7 +44,7 @@ contract CoinCadenceDCATest is Test {
                 path: hex"2260FAC5E5542a773Aa44fBCfeDf7C193bc2C5990001f4C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc20001f4A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                 recipient: user,
                 deadline: block.timestamp + 5 * 60,
-                amountIn: 0.5 ether,
+                amountIn: 2,
                 amountOutMinimum: 0
             })
         );
