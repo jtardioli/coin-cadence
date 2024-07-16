@@ -34,6 +34,16 @@ contract CoinCadenceDCA {
         TransferHelper.safeTransferFrom(inputToken, msg.sender, address(this), params.amountIn);
         TransferHelper.safeApprove(inputToken, address(swapRouter), params.amountIn);
 
+        ISwapRouter.ExactInputParams memory exactInputParams = ISwapRouter.ExactInputParams({
+            path: params.path,
+            recipient: params.recipient,
+            deadline: params.deadline,
+            amountIn: params.amountIn,
+            amountOutMinimum: params.amountOutMinimum
+        });
+
+        swapRouter.exactInput(exactInputParams);
+
         return inputToken;
     }
 

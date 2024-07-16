@@ -11,43 +11,50 @@ contract CoinCadenceDCATest is Test {
     address public user = makeAddr("user");
 
     address public swapRouterAddr = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-    address public wethAddress = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
-    IERC20 public weth = IERC20(wethAddress);
+    address public wbtcAddress = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+    address public wethAddress = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public usdcAddress = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+
+    IERC20 public wbtc = IERC20(wbtcAddress);
+    IERC20 public usdc = IERC20(usdcAddress);
 
     CoinCadenceDCA coinCadenceDCA;
 
     function setUp() public {
         coinCadenceDCA = new CoinCadenceDCA(swapRouterAddr);
-        deal(wethAddress, user, 1 ether);
+        deal(wbtcAddress, user, 1 ether);
     }
 
     // deal user the token x
     // user approves my DCA contract to spend the token x
     // transfer the token to my contract x
-    // approve swap router to spend the token
+    // approve swap router to spend the token x
     // call exactInput
     function test() public {
         vm.prank(user);
-        weth.approve(address(coinCadenceDCA), 5 ether);
+        wbtc.approve(address(coinCadenceDCA), 5 ether);
 
         console.log("My Logs");
-        console.log(weth.balanceOf(user));
-        console.log(weth.allowance(user, address(coinCadenceDCA)));
+        console.log(wbtc.balanceOf(user));
+        console.log(wbtc.allowance(user, address(coinCadenceDCA)));
 
         vm.prank(user);
         address amount = coinCadenceDCA.exactInput(
             ISwapRouter.ExactInputParams({
-                path: hex"2260FAC5E5542a773Aa44fBCfeDf7C193bc2C59900000aC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc200000aA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                path: bytes.concat(
+                    bytes20(wbtcAddress), bytes3(uint24(10)), bytes20(wethAddress), bytes3(uint24(10)), bytes20(usdcAddress)
+                ),
                 recipient: user,
-                deadline: 0,
+                deadline: block.timestamp,
                 amountIn: 0.5 ether,
                 amountOutMinimum: 0
             })
         );
 
-        console.log(weth.balanceOf(user));
-        console.log(weth.allowance(address(coinCadenceDCA), swapRouterAddr));
+        console.log(wbtc.balanceOf(user));
+        console.log(wbtc.allowance(address(coinCadenceDCA), swapRouterAddr));
 
         console.log(amount);
+        console.log(usdc.balanceOf(user));
     }
 }

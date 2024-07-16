@@ -142,6 +142,8 @@ function processRoute(route: SwapRoute) {
     }
   }
 
+  console.log("pathParts", pathParts);
+
   const path = concatBytes(pathParts);
   return path;
 }
