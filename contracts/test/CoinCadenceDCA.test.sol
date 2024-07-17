@@ -31,12 +31,10 @@ contract CoinCadenceDCATest is Test {
     // approve swap router to spend the token x
     // call exactInput
     function test() public {
+        assertEq(usdc.balanceOf(user), 0);
+
         vm.prank(user);
         wbtc.approve(address(coinCadenceDCA), 5 ether);
-
-        console.log("My Logs");
-        console.log(wbtc.balanceOf(user));
-        console.log(wbtc.allowance(user, address(coinCadenceDCA)));
 
         vm.prank(user);
         address amount = coinCadenceDCA.exactInput(
@@ -44,15 +42,11 @@ contract CoinCadenceDCATest is Test {
                 path: hex"2260FAC5E5542a773Aa44fBCfeDf7C193bc2C5990001f4C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc20001f4A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                 recipient: user,
                 deadline: block.timestamp + 5 * 60,
-                amountIn: 2,
+                amountIn: 100000000,
                 amountOutMinimum: 0
             })
         );
 
-        console.log(wbtc.balanceOf(user));
-        console.log(wbtc.allowance(address(coinCadenceDCA), swapRouterAddr));
-
-        console.log(amount);
-        console.log(usdc.balanceOf(user));
+        assert(usdc.balanceOf(user) > 0);
     }
 }

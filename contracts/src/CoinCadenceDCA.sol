@@ -12,7 +12,22 @@ import {Path} from "../lib/v3-periphery-foundry/contracts/libraries/Path.sol";
     3. Handle if user did not approve enough of the token
     4. handle if user does not have enough balance in thier wallet
  */
+
+/* 
+    If I dont let the function input the swap path, then there is no way to know if the most efficient path is being used, 
+    but if I do let the user input the path, then they can input any path they want, which could be inefficient or malicious.
+    What happens if the pool no longer exists
+ */
+/* 
+    Make sure to look into not being able to send other people money. I think the sender should always be the msg.sender
+    That created the job
+ */
+
 contract CoinCadenceDCA {
+    enum Frequency {
+        Weekly
+    }
+
     ISwapRouter public immutable swapRouter;
 
     constructor(address _swapRouterAddress) {
@@ -20,15 +35,28 @@ contract CoinCadenceDCA {
         swapRouter = ISwapRouter(_swapRouterAddress);
     }
 
-    // struct ExactInputParams {
-    //     bytes path;
-    //     address recipient;
-    //     uint256 deadline;
-    //     uint256 amountIn;
-    //     uint256 amountOutMinimum;
-    // }
+    struct DCAJobProperties {
+        bytes path;
+        address sender;
+        address recipient;
+        uint256 deadline;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        Frequency frequency;
+        uint256 lastRunTimestamp;
+        uint256 startTimestamp;
+    }
+
+    mapping(bytes32 => DCAJobProperties) public dcaJobs;
+
+    function setJob(DCAJobProperties memory job) external {
+        bytes32 jobKey = keccak256(abi.encode(job));
+        dcaJobs[jobKey] = job;
+    }
 
     function exactInput(ISwapRouter.ExactInputParams calldata params) external returns (address amountOut) {
+        // Check if the correct amount of time has passed
+
         address inputToken = getFirstAddress(params.path);
 
         TransferHelper.safeTransferFrom(inputToken, msg.sender, address(this), params.amountIn);
@@ -55,30 +83,4 @@ contract CoinCadenceDCA {
         }
         return firstAddress;
     }
-
-    // function swapExactInputSingle(address inputToken, address outputToken, address recipient, uint256 amountIn)
-    //     external
-    //     returns (uint256 amountOut)
-    // {
-    //     // Transfer the specified amount of inputToken to this contract.
-    //     TransferHelper.safeTransferFrom(inputToken, msg.sender, address(this), amountIn);
-
-    //     // Approve the router to spend inputToken.
-    //     TransferHelper.safeApprove(inputToken, address(swapRouter), amountIn);
-    //     // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
-    //     // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
-    //     ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
-    //         tokenIn: inputToken,
-    //         tokenOut: outputToken,
-    //         fee: poolFee,
-    //         recipient: recipient,
-    //         deadline: block.timestamp,
-    //         amountIn: amountIn,
-    //         amountOutMinimum: 0, // user price oracle to get this value
-    //         sqrtPriceLimitX96: 0
-    //     });
-
-    //     // The call to `exactInputSingle` executes the swap.
-    //     amountOut = swapRouter.exactInputSingle(params);
-    // }
 }
