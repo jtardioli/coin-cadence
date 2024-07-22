@@ -23,6 +23,10 @@ import {Path} from "../lib/v3-periphery-foundry/contracts/libraries/Path.sol";
     That created the job
  */
 
+/* 
+    Could think about a way to make the frequencies allowed dynamic
+ */
+
 contract CoinCadenceDCA {
     enum Frequency {
         Weekly
@@ -33,6 +37,9 @@ contract CoinCadenceDCA {
     constructor(address _swapRouterAddress) {
         require(_swapRouterAddress != address(0), "Invalid address");
         swapRouter = ISwapRouter(_swapRouterAddress);
+
+        // Initialize the mapping with the number of seconds for each frequency
+        frequencyToSeconds[Frequency.Weekly] = 7 * 24 * 60 * 60; // 1 week in seconds
     }
 
     struct DCAJobProperties {
@@ -47,7 +54,17 @@ contract CoinCadenceDCA {
         uint256 startTimestamp;
     }
 
+    mapping(Frequency => uint256) public frequencyToSeconds;
+
+    function getSeconds(Frequency frequency) public view returns (uint256) {
+        return frequencyToSeconds[frequency];
+    }
+
     mapping(bytes32 => DCAJobProperties) public dcaJobs;
+
+    function getJob(bytes32 jobKey) external view returns (DCAJobProperties memory) {
+        return dcaJobs[jobKey];
+    }
 
     function setJob(DCAJobProperties memory job) external {
         bytes32 jobKey = keccak256(abi.encode(job));
@@ -73,6 +90,19 @@ contract CoinCadenceDCA {
         swapRouter.exactInput(exactInputParams);
 
         return inputToken;
+    }
+
+    function processJob(bytes32 jobKey) external {
+        DCAJobProperties memory job = dcaJobs[jobKey];
+
+        // Check if the correct amount of time has passed
+        require(block.timestamp >= job.lastRunTimestamp + 604800, "Not enough time has passed");
+
+        // Check if the deadline has passed
+        require(block.timestamp <= job.deadline, "Deadline has passed");
+
+        // Check if the user has enough balance in their wallet
+        // Check if the user has approved enough of the token
     }
 
     function getFirstAddress(bytes calldata path) public pure returns (address) {
