@@ -24,19 +24,37 @@ contract CoinCadenceDCATest is Test {
         deal(wbtcAddress, user, 1 ether);
     }
 
-    // deal user the token x
-    // user approves my DCA contract to spend the token x
-    // transfer the token to my contract x
-    // approve swap router to spend the token x
-    // call exactInput
-    function test() public {
+    /////////////////
+    // constructor()
+    /////////////////
+
+    /////////////////
+    // setJob()
+    /////////////////
+
+    function testOwnerCanCreateJob() public {}
+    function testOwnerCanDeleteJob() public {}
+    function testNotOwnerCantCreateJob() public {}
+    function testNotOwnerCantDeleteJob() public {}
+    function testErrorIfJobAlreadyExists() public {}
+
+    /////////////////
+    // getJob()
+    /////////////////
+    function testErrorIfJobDoesNotExist() public {}
+
+    /////////////////
+    // exactInput()
+    /////////////////
+
+    function testSwapExactInput() public {
         assertEq(usdc.balanceOf(user), 0);
 
         vm.prank(user);
         wbtc.approve(address(coinCadenceDCA), 5 ether);
 
         vm.prank(user);
-        address amount = coinCadenceDCA.exactInput(
+        coinCadenceDCA.exactInput(
             ISwapRouter.ExactInputParams({
                 path: hex"2260FAC5E5542a773Aa44fBCfeDf7C193bc2C5990001f4C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc20001f4A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                 recipient: user,
@@ -48,4 +66,19 @@ contract CoinCadenceDCATest is Test {
 
         assert(usdc.balanceOf(user) > 0);
     }
+
+    /////////////////
+    // processJob()
+    /////////////////
+    function testErrorIfJobDoesNotExistWhileJobRunning() public {}
+    function testErrorIfInsufficientTimeInterval() public {}
+    function testProccessJobSuccess() public {}
+
+    /////////////////
+    // getFirstAddress()
+    /////////////////
+
+    /////////////////
+    // getSeconds()
+    /////////////////
 }
