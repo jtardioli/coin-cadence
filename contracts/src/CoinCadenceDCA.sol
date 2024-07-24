@@ -26,6 +26,8 @@ import {Path} from "../integrations/uniswap/libraries/Path.sol";
     Could think about a way to make the frequencies allowed dynamic
  */
 
+error CoinCadenceDCA__InsufficientTimeInterval(uint256 timeSinceLastRun, uint256 frequencyInSeconds);
+
 contract CoinCadenceDCA {
     enum Frequency {
         Weekly
@@ -78,15 +80,7 @@ contract CoinCadenceDCA {
         TransferHelper.safeTransferFrom(inputToken, msg.sender, address(this), params.amountIn);
         TransferHelper.safeApprove(inputToken, address(swapRouter), params.amountIn);
 
-        ISwapRouter.ExactInputParams memory exactInputParams = ISwapRouter.ExactInputParams({
-            path: params.path,
-            recipient: params.recipient,
-            deadline: params.deadline,
-            amountIn: params.amountIn,
-            amountOutMinimum: params.amountOutMinimum
-        });
-
-        swapRouter.exactInput(exactInputParams);
+        swapRouter.exactInput(params);
 
         return inputToken;
     }
@@ -94,14 +88,23 @@ contract CoinCadenceDCA {
     function processJob(bytes32 jobKey) external {
         DCAJobProperties memory job = dcaJobs[jobKey];
 
-        // Check if the correct amount of time has passed
-        require(block.timestamp >= job.lastRunTimestamp + 604800, "Not enough time has passed");
+        uint256 timeSinceLastRun = block.timestamp - job.lastRunTimestamp;
+        uint256 frequencyInSeconds = frequencyToSeconds[job.frequency];
 
-        // Check if the deadline has passed
-        require(block.timestamp <= job.deadline, "Deadline has passed");
+        if (timeSinceLastRun < frequencyInSeconds) {
+            revert CoinCadenceDCA__InsufficientTimeInterval(timeSinceLastRun, frequencyInSeconds);
+        }
 
-        // Check if the user has enough balance in their wallet
-        // Check if the user has approved enough of the token
+        ISwapRouter.ExactInputParams memory exactInputParams = ISwapRouter.ExactInputParams({
+            path: job.path,
+            recipient: job.recipient,
+            deadline: job.deadline,
+            amountIn: job.amountIn,
+            amountOutMinimum: job.amountOutMinimum
+        });
+        swapRouter.exactInput(exactInputParams);
+
+        job.lastRunTimestamp = job.lastRunTimestamp + frequencyInSeconds;
     }
 
     function getFirstAddress(bytes calldata path) public pure returns (address) {
