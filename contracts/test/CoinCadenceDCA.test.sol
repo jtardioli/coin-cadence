@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.20;
 
-import {ISwapRouter} from "../lib/v3-periphery-foundry/contracts/interfaces/ISwapRouter.sol";
+import {ISwapRouter} from "../integrations/uniswap/interfaces/ISwapRouter.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {CoinCadenceDCA} from "../src/CoinCadenceDCA.sol";
 import {IERC20} from "../lib/IERC20.sol";

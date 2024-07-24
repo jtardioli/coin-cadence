@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.20;
 
-import {ISwapRouter} from "../lib/v3-periphery-foundry/contracts/interfaces/ISwapRouter.sol";
-import {TransferHelper} from "../lib/v3-periphery-foundry/contracts/libraries/TransferHelper.sol";
-import {Path} from "../lib/v3-periphery-foundry/contracts/libraries/Path.sol";
+import {ISwapRouter} from "../integrations/uniswap/interfaces/ISwapRouter.sol";
+import {TransferHelper} from "../integrations/uniswap/libraries/TransferHelper.sol";
+import {Path} from "../integrations/uniswap/libraries/Path.sol";
 
 /* 
     1. Need to investigate how to not get frontrun on the swap
