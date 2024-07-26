@@ -103,6 +103,11 @@ contract CoinCadenceDCA {
             amountOutMinimum: job.amountOutMinimum
         });
 
+        address inputToken = getFirstAddress(job.path);
+
+        TransferHelper.safeTransferFrom(inputToken, job.owner, address(this), job.amountIn);
+        TransferHelper.safeApprove(inputToken, address(swapRouter), job.amountIn);
+
         try swapRouter.exactInput(exactInputParams) {
             job.prevRunTimestamp = job.prevRunTimestamp + frequencyInSeconds;
             emit JobSuccess(jobKey, job.owner);
@@ -165,20 +170,11 @@ contract CoinCadenceDCA {
     // Internal Functions   //
     /////////////////////////
 
-    function exactInputSwap(ISwapRouter.ExactInputParams calldata params) private {
-        address inputToken = getFirstAddress(params.path);
-
-        TransferHelper.safeTransferFrom(inputToken, msg.sender, address(this), params.amountIn);
-        TransferHelper.safeApprove(inputToken, address(swapRouter), params.amountIn);
-
-        swapRouter.exactInput(params);
-    }
-
-    function getFirstAddress(bytes calldata path) private pure returns (address) {
+    function getFirstAddress(bytes memory path) private pure returns (address) {
         require(path.length >= 20, "Path too short");
         address firstAddress;
         assembly {
-            firstAddress := shr(96, calldataload(add(path.offset, 0)))
+            firstAddress := shr(96, mload(add(path, 0x20)))
         }
         return firstAddress;
     }

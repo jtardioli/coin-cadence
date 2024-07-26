@@ -187,6 +187,8 @@ contract CoinCadenceDCATest is Test {
 
         coinCadenceDCA.processJob(jobKey); // this will revert if the swap fails
 
+        console.log("usdc balance after swap: ", usdc.balanceOf(user));
+
         assert(usdc.balanceOf(user) > 0);
     }
 }
