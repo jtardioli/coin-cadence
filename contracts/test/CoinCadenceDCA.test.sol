@@ -13,6 +13,8 @@ contract CoinCadenceDCATest is Test {
     address public wbtcAddress = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
     address public wethAddress = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public usdcAddress = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    bytes public wbtcToUsdcPath =
+        hex"2260FAC5E5542a773Aa44fBCfeDf7C193bc2C5990001f4C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc20001f4A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
     IERC20 public wbtc = IERC20(wbtcAddress);
     IERC20 public usdc = IERC20(usdcAddress);
@@ -29,13 +31,109 @@ contract CoinCadenceDCATest is Test {
     /////////////////
 
     /////////////////
-    // setJob()
+    // createJob()
     /////////////////
 
-    function testOwnerCanCreateJob() public {}
-    function testOwnerCanDeleteJob() public {}
-    function testNotOwnerCantCreateJob() public {}
-    function testNotOwnerCantDeleteJob() public {}
+    function testUserCanCreateJob() public {
+        vm.startPrank(user);
+        bytes32 jobKey = coinCadenceDCA.createJob(
+            wbtcToUsdcPath,
+            user,
+            block.timestamp + 5 * 60,
+            100000000,
+            0,
+            CoinCadenceDCA.Frequency.Weekly,
+            block.timestamp - coinCadenceDCA.frequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
+        );
+        vm.stopPrank();
+
+        CoinCadenceDCA.DCAJobProperties memory storedJob = coinCadenceDCA.getJob(jobKey);
+
+        assertEq(storedJob.path, wbtcToUsdcPath);
+        assertEq(storedJob.owner, user);
+        assertEq(storedJob.recipient, user);
+        assertEq(storedJob.deadline, block.timestamp + 5 * 60);
+        assertEq(storedJob.amountIn, 100000000);
+        assertEq(storedJob.amountOutMinimum, 0);
+        assertEq(keccak256(abi.encode(storedJob.frequency)), keccak256(abi.encode(CoinCadenceDCA.Frequency.Weekly)));
+        assertEq(
+            storedJob.prevRunTimestamp,
+            block.timestamp - coinCadenceDCA.frequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
+        );
+        assert(storedJob.initialized);
+    }
+
+    /////////////////
+    // deleteJob()
+    /////////////////
+
+    function testUserCanDeleteJob() public {
+        vm.startPrank(user);
+        bytes32 jobKey = coinCadenceDCA.createJob(
+            wbtcToUsdcPath,
+            user,
+            block.timestamp + 5 * 60,
+            100000000,
+            0,
+            CoinCadenceDCA.Frequency.Weekly,
+            block.timestamp - coinCadenceDCA.frequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
+        );
+
+        CoinCadenceDCA.DCAJobProperties memory storedJobBefore = coinCadenceDCA.getJob(jobKey);
+        assert(storedJobBefore.initialized);
+
+        coinCadenceDCA.deleteJob(jobKey);
+        vm.stopPrank();
+
+        CoinCadenceDCA.DCAJobProperties memory storedJobAfter = coinCadenceDCA.getJob(jobKey);
+        assert(!storedJobAfter.initialized);
+    }
+
+    function testDelteJobRevertsIfNoJob() public {
+        vm.startPrank(user);
+        bytes32 jobKey = coinCadenceDCA.createJob(
+            wbtcToUsdcPath,
+            user,
+            block.timestamp + 5 * 60,
+            100000000,
+            0,
+            CoinCadenceDCA.Frequency.Weekly,
+            block.timestamp - coinCadenceDCA.frequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
+        );
+
+        CoinCadenceDCA.DCAJobProperties memory storedJobBefore = coinCadenceDCA.getJob(jobKey);
+        assert(storedJobBefore.initialized);
+
+        coinCadenceDCA.deleteJob(jobKey);
+        vm.stopPrank();
+
+        CoinCadenceDCA.DCAJobProperties memory storedJobAfter = coinCadenceDCA.getJob(jobKey);
+        assert(!storedJobAfter.initialized);
+    }
+
+    function testDelteJobRevertsIfNotOwner() public {
+        vm.startPrank(user);
+        bytes32 jobKey = coinCadenceDCA.createJob(
+            wbtcToUsdcPath,
+            user,
+            block.timestamp + 5 * 60,
+            100000000,
+            0,
+            CoinCadenceDCA.Frequency.Weekly,
+            block.timestamp - coinCadenceDCA.frequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
+        );
+
+        CoinCadenceDCA.DCAJobProperties memory storedJobBefore = coinCadenceDCA.getJob(jobKey);
+        assert(storedJobBefore.initialized);
+
+        coinCadenceDCA.deleteJob(jobKey);
+        vm.stopPrank();
+
+        CoinCadenceDCA.DCAJobProperties memory storedJobAfter = coinCadenceDCA.getJob(jobKey);
+        assert(!storedJobAfter.initialized);
+    }
+
+    function testUserCannotDeleteOtherUsersJob() public {}
     function testErrorIfJobAlreadyExists() public {}
 
     /////////////////
@@ -56,7 +154,7 @@ contract CoinCadenceDCATest is Test {
         vm.prank(user);
         coinCadenceDCA.exactInput(
             ISwapRouter.ExactInputParams({
-                path: hex"2260FAC5E5542a773Aa44fBCfeDf7C193bc2C5990001f4C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc20001f4A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                path: wbtcToUsdcPath,
                 recipient: user,
                 deadline: block.timestamp + 5 * 60,
                 amountIn: 100000000,
@@ -70,7 +168,12 @@ contract CoinCadenceDCATest is Test {
     /////////////////
     // processJob()
     /////////////////
-    function testErrorIfJobDoesNotExistWhileJobRunning() public {}
+    function testErrorIfJobDoesNotExistWhileJobRunning() public {
+        bytes32 jobKey = keccak256(abi.encodePacked("test"));
+        vm.expectRevert(abi.encodeWithSelector(CoinCadenceDCA.CoinCadenceDCA__JobDoesNotExist.selector, jobKey));
+        coinCadenceDCA.processJob(jobKey);
+    }
+
     function testErrorIfInsufficientTimeInterval() public {}
     function testProccessJobSuccess() public {}
 

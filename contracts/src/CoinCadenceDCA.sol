@@ -20,23 +20,31 @@ import {Path} from "../integrations/uniswap/libraries/Path.sol";
 
 /* how to get all jobs for a user */
 
-error CoinCadenceDCA__InsufficientTimeSinceLastRun(uint256 timeSinceLastRun, uint256 frequencyInSeconds);
+/* make sure i em emiitering the correct events */
 
 contract CoinCadenceDCA {
+    //////////////////
+    // Errors    //
+    /////////////////
+
+    error CoinCadenceDCA__InsufficientTimeSinceLastRun(uint256 timeSinceLastRun, uint256 frequencyInSeconds);
+    error CoinCadenceDCA__JobDoesNotExist(bytes32 jobKey);
+    error CoinCadenceDCA__NotOwner();
+
     enum Frequency {
         Weekly
     }
 
     struct DCAJobProperties {
         bytes path;
-        address sender;
+        address owner;
         address recipient;
         uint256 deadline;
         uint256 amountIn;
         uint256 amountOutMinimum;
         Frequency frequency;
-        uint256 lastRunTimestamp;
-        uint256 startTimestamp;
+        uint256 prevRunTimestamp;
+        bool initialized;
     }
 
     ISwapRouter public immutable swapRouter;
@@ -64,7 +72,11 @@ contract CoinCadenceDCA {
     function processJob(bytes32 jobKey) external {
         DCAJobProperties memory job = dcaJobs[jobKey];
 
-        uint256 timeSinceLastRun = block.timestamp - job.lastRunTimestamp;
+        if (!job.initialized) {
+            revert CoinCadenceDCA__JobDoesNotExist(jobKey);
+        }
+
+        uint256 timeSinceLastRun = block.timestamp - job.prevRunTimestamp;
         uint256 frequencyInSeconds = frequencyToSeconds[job.frequency];
 
         if (timeSinceLastRun < frequencyInSeconds) {
@@ -80,7 +92,7 @@ contract CoinCadenceDCA {
         });
         swapRouter.exactInput(exactInputParams);
 
-        job.lastRunTimestamp = job.lastRunTimestamp + frequencyInSeconds;
+        job.prevRunTimestamp = job.prevRunTimestamp + frequencyInSeconds;
     }
 
     /////////////////
@@ -95,9 +107,43 @@ contract CoinCadenceDCA {
     // Setters
     /////////////////
 
-    function setJob(DCAJobProperties memory job) external {
+    function createJob(
+        bytes memory path,
+        address recipient,
+        uint256 deadline,
+        uint256 amountIn,
+        uint256 amountOutMinimum,
+        Frequency frequency,
+        uint256 prevRunTimestamp
+    ) external returns (bytes32) {
+        CoinCadenceDCA.DCAJobProperties memory job = CoinCadenceDCA.DCAJobProperties({
+            path: path,
+            owner: msg.sender,
+            recipient: recipient,
+            deadline: deadline,
+            amountIn: amountIn,
+            amountOutMinimum: amountOutMinimum,
+            frequency: frequency,
+            prevRunTimestamp: prevRunTimestamp,
+            initialized: true
+        });
+
         bytes32 jobKey = keccak256(abi.encode(job));
         dcaJobs[jobKey] = job;
+        return jobKey;
+    }
+
+    function deleteJob(bytes32 jobKey) external returns (bytes32) {
+        DCAJobProperties memory job = dcaJobs[jobKey];
+        if (!job.initialized) {
+            revert CoinCadenceDCA__JobDoesNotExist(jobKey);
+        }
+
+        if (job.owner != msg.sender) {
+            revert CoinCadenceDCA__NotOwner();
+        }
+
+        delete dcaJobs[jobKey];
     }
 
     /////////////////
