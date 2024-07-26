@@ -27,10 +27,6 @@ contract CoinCadenceDCATest is Test {
     }
 
     /////////////////
-    // constructor()
-    /////////////////
-
-    /////////////////
     // createJob()
     /////////////////
 
@@ -43,7 +39,7 @@ contract CoinCadenceDCATest is Test {
             100000000,
             0,
             CoinCadenceDCA.Frequency.Weekly,
-            block.timestamp - coinCadenceDCA.frequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
+            block.timestamp - coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
         );
         vm.stopPrank();
 
@@ -58,7 +54,7 @@ contract CoinCadenceDCATest is Test {
         assertEq(keccak256(abi.encode(storedJob.frequency)), keccak256(abi.encode(CoinCadenceDCA.Frequency.Weekly)));
         assertEq(
             storedJob.prevRunTimestamp,
-            block.timestamp - coinCadenceDCA.frequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
+            block.timestamp - coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
         );
         assert(storedJob.initialized);
     }
@@ -76,7 +72,7 @@ contract CoinCadenceDCATest is Test {
             100000000,
             0,
             CoinCadenceDCA.Frequency.Weekly,
-            block.timestamp - coinCadenceDCA.frequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
+            block.timestamp - coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
         );
 
         CoinCadenceDCA.DCAJobProperties memory storedJobBefore = coinCadenceDCA.getJob(jobKey);
@@ -89,7 +85,13 @@ contract CoinCadenceDCATest is Test {
         assert(!storedJobAfter.initialized);
     }
 
-    function testDelteJobRevertsIfNoJob() public {
+    function testDeleteJobRevertsIfNoJob() public {
+        bytes32 jobKey = keccak256(abi.encodePacked("test"));
+        vm.expectRevert(abi.encodeWithSelector(CoinCadenceDCA.CoinCadenceDCA__JobDoesNotExist.selector, jobKey));
+        coinCadenceDCA.deleteJob(jobKey);
+    }
+
+    function testDeleteJobRevertsIfNotOwner() public {
         vm.startPrank(user);
         bytes32 jobKey = coinCadenceDCA.createJob(
             wbtcToUsdcPath,
@@ -98,71 +100,15 @@ contract CoinCadenceDCATest is Test {
             100000000,
             0,
             CoinCadenceDCA.Frequency.Weekly,
-            block.timestamp - coinCadenceDCA.frequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
+            block.timestamp - coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
         );
 
         CoinCadenceDCA.DCAJobProperties memory storedJobBefore = coinCadenceDCA.getJob(jobKey);
         assert(storedJobBefore.initialized);
-
-        coinCadenceDCA.deleteJob(jobKey);
         vm.stopPrank();
 
-        CoinCadenceDCA.DCAJobProperties memory storedJobAfter = coinCadenceDCA.getJob(jobKey);
-        assert(!storedJobAfter.initialized);
-    }
-
-    function testDelteJobRevertsIfNotOwner() public {
-        vm.startPrank(user);
-        bytes32 jobKey = coinCadenceDCA.createJob(
-            wbtcToUsdcPath,
-            user,
-            block.timestamp + 5 * 60,
-            100000000,
-            0,
-            CoinCadenceDCA.Frequency.Weekly,
-            block.timestamp - coinCadenceDCA.frequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
-        );
-
-        CoinCadenceDCA.DCAJobProperties memory storedJobBefore = coinCadenceDCA.getJob(jobKey);
-        assert(storedJobBefore.initialized);
-
+        vm.expectRevert(abi.encodeWithSelector(CoinCadenceDCA.CoinCadenceDCA__NotOwner.selector));
         coinCadenceDCA.deleteJob(jobKey);
-        vm.stopPrank();
-
-        CoinCadenceDCA.DCAJobProperties memory storedJobAfter = coinCadenceDCA.getJob(jobKey);
-        assert(!storedJobAfter.initialized);
-    }
-
-    function testUserCannotDeleteOtherUsersJob() public {}
-    function testErrorIfJobAlreadyExists() public {}
-
-    /////////////////
-    // getJob()
-    /////////////////
-    function testErrorIfJobDoesNotExist() public {}
-
-    /////////////////
-    // exactInput()
-    /////////////////
-
-    function testSwapExactInput() public {
-        assertEq(usdc.balanceOf(user), 0);
-
-        vm.prank(user);
-        wbtc.approve(address(coinCadenceDCA), 5 ether);
-
-        vm.prank(user);
-        coinCadenceDCA.exactInput(
-            ISwapRouter.ExactInputParams({
-                path: wbtcToUsdcPath,
-                recipient: user,
-                deadline: block.timestamp + 5 * 60,
-                amountIn: 100000000,
-                amountOutMinimum: 0
-            })
-        );
-
-        assert(usdc.balanceOf(user) > 0);
     }
 
     /////////////////
@@ -174,14 +120,26 @@ contract CoinCadenceDCATest is Test {
         coinCadenceDCA.processJob(jobKey);
     }
 
-    function testErrorIfInsufficientTimeInterval() public {}
+    function testErrorIfInsufficientTimeInterval() public {
+        bytes32 jobKey = coinCadenceDCA.createJob(
+            wbtcToUsdcPath,
+            user,
+            block.timestamp + 5 * 60,
+            100000000,
+            0,
+            CoinCadenceDCA.Frequency.Weekly,
+            block.timestamp
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CoinCadenceDCA.CoinCadenceDCA__InsufficientTimeSinceLastRun.selector,
+                0,
+                coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
+            )
+        );
+        coinCadenceDCA.processJob(jobKey);
+    }
+
     function testProccessJobSuccess() public {}
-
-    /////////////////
-    // getFirstAddress()
-    /////////////////
-
-    /////////////////
-    // getSeconds()
-    /////////////////
 }

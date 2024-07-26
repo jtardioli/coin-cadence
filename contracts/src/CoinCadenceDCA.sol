@@ -13,26 +13,27 @@ import {Path} from "../integrations/uniswap/libraries/Path.sol";
     but if I do let the user input the path, then they can input any path they want, which could be inefficient or malicious.
     What happens if the pool no longer exists
  */
-/* 
-    Make sure to look into not being able to send other people money. I think the sender should always be the msg.sender
-    That created the job
- */
 
 /* how to get all jobs for a user */
 
-/* make sure i em emiitering the correct events */
+/* make sure i am emiitering the correct events */
 
 contract CoinCadenceDCA {
     //////////////////
     // Errors    //
     /////////////////
-
     error CoinCadenceDCA__InsufficientTimeSinceLastRun(uint256 timeSinceLastRun, uint256 frequencyInSeconds);
     error CoinCadenceDCA__JobDoesNotExist(bytes32 jobKey);
+    error CoinCadenceDCA__JobAlreadyExists(bytes32 jobKey);
     error CoinCadenceDCA__NotOwner();
+    error CoinCadenceDCA__InvalidAddress();
 
+    ////////////////////////
+    // Type               //
+    ////////////////////////
     enum Frequency {
-        Weekly
+        Weekly,
+        BiWeekly
     }
 
     struct DCAJobProperties {
@@ -47,32 +48,45 @@ contract CoinCadenceDCA {
         bool initialized;
     }
 
+    ////////////////////////
+    // State Variables    //
+    ////////////////////////
     ISwapRouter public immutable swapRouter;
+    mapping(Frequency => uint256) private frequencyToSeconds;
+    mapping(bytes32 => DCAJobProperties) private dcaJobs;
+
+    ////////////////////////
+    // Events            //
+    ////////////////////////
+    event JobCreated(bytes32 indexed jobKey, address indexed owner);
+    event JobDeleted(bytes32 indexed jobKey, address indexed owner);
+    event JobSuccess(bytes32 indexed jobKey, address indexed owner);
+    event JobFailed(bytes32 indexed jobKey, address indexed owner, string reason);
+
+    //////////////////
+    // Modifiers    //
+    /////////////////
 
     constructor(address _swapRouterAddress) {
-        require(_swapRouterAddress != address(0), "Invalid address");
+        if (_swapRouterAddress == address(0)) {
+            revert CoinCadenceDCA__InvalidAddress();
+        }
+
         swapRouter = ISwapRouter(_swapRouterAddress);
 
         // Initialize the mapping with the number of seconds for each frequency
         frequencyToSeconds[Frequency.Weekly] = 7 * 24 * 60 * 60; // 1 week in seconds
+        frequencyToSeconds[Frequency.BiWeekly] = 7 * 24 * 60 * 60 * 2; // 2 week in seconds
     }
 
-    mapping(Frequency => uint256) public frequencyToSeconds;
-    mapping(bytes32 => DCAJobProperties) public dcaJobs;
-
-    function exactInput(ISwapRouter.ExactInputParams calldata params) external {
-        address inputToken = getFirstAddress(params.path);
-
-        TransferHelper.safeTransferFrom(inputToken, msg.sender, address(this), params.amountIn);
-        TransferHelper.safeApprove(inputToken, address(swapRouter), params.amountIn);
-
-        swapRouter.exactInput(params);
-    }
-
+    //////////////////////////
+    // External Functions   //
+    /////////////////////////
     function processJob(bytes32 jobKey) external {
         DCAJobProperties memory job = dcaJobs[jobKey];
 
         if (!job.initialized) {
+            emit JobFailed(jobKey, job.owner, "Job does not exist");
             revert CoinCadenceDCA__JobDoesNotExist(jobKey);
         }
 
@@ -80,6 +94,7 @@ contract CoinCadenceDCA {
         uint256 frequencyInSeconds = frequencyToSeconds[job.frequency];
 
         if (timeSinceLastRun < frequencyInSeconds) {
+            emit JobFailed(jobKey, job.owner, "Insufficient time since last run");
             revert CoinCadenceDCA__InsufficientTimeSinceLastRun(timeSinceLastRun, frequencyInSeconds);
         }
 
@@ -90,22 +105,14 @@ contract CoinCadenceDCA {
             amountIn: job.amountIn,
             amountOutMinimum: job.amountOutMinimum
         });
-        swapRouter.exactInput(exactInputParams);
 
-        job.prevRunTimestamp = job.prevRunTimestamp + frequencyInSeconds;
+        try swapRouter.exactInput(exactInputParams) {
+            job.prevRunTimestamp = job.prevRunTimestamp + frequencyInSeconds;
+            emit JobSuccess(jobKey, job.owner);
+        } catch (bytes memory lowLevelData) {
+            emit JobFailed(jobKey, job.owner, "Swap failed: low level error");
+        }
     }
-
-    /////////////////
-    // Getters
-    /////////////////
-
-    function getJob(bytes32 jobKey) external view returns (DCAJobProperties memory) {
-        return dcaJobs[jobKey];
-    }
-
-    /////////////////
-    // Setters
-    /////////////////
 
     function createJob(
         bytes memory path,
@@ -130,6 +137,8 @@ contract CoinCadenceDCA {
 
         bytes32 jobKey = keccak256(abi.encode(job));
         dcaJobs[jobKey] = job;
+        emit JobCreated(jobKey, job.owner);
+
         return jobKey;
     }
 
@@ -144,22 +153,36 @@ contract CoinCadenceDCA {
         }
 
         delete dcaJobs[jobKey];
+        emit JobDeleted(jobKey, job.owner);
     }
 
-    /////////////////
-    // Utils
-    /////////////////
+    function getJob(bytes32 jobKey) external view returns (DCAJobProperties memory) {
+        return dcaJobs[jobKey];
+    }
 
-    function getFirstAddress(bytes calldata path) public pure returns (address) {
+    function getFrequencyToSeconds(Frequency frequency) external view returns (uint256) {
+        return frequencyToSeconds[frequency];
+    }
+
+    //////////////////////////
+    // Internal Functions   //
+    /////////////////////////
+
+    function exactInputSwap(ISwapRouter.ExactInputParams calldata params) private {
+        address inputToken = getFirstAddress(params.path);
+
+        TransferHelper.safeTransferFrom(inputToken, msg.sender, address(this), params.amountIn);
+        TransferHelper.safeApprove(inputToken, address(swapRouter), params.amountIn);
+
+        swapRouter.exactInput(params);
+    }
+
+    function getFirstAddress(bytes calldata path) private pure returns (address) {
         require(path.length >= 20, "Path too short");
         address firstAddress;
         assembly {
             firstAddress := shr(96, calldataload(add(path.offset, 0)))
         }
         return firstAddress;
-    }
-
-    function getSeconds(Frequency frequency) public view returns (uint256) {
-        return frequencyToSeconds[frequency];
     }
 }
