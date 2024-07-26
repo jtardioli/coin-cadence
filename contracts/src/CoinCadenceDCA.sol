@@ -95,7 +95,7 @@ contract CoinCadenceDCA {
             revert CoinCadenceDCA__InsufficientTimeSinceLastRun(timeSinceLastRun, frequencyInSeconds);
         }
 
-        address inputToken = getFirstAddress(job.path);
+        address inputToken = _getFirstAddress(job.path);
         TransferHelper.safeTransferFrom(inputToken, job.owner, address(this), job.amountIn);
         TransferHelper.safeApprove(inputToken, address(swapRouter), job.amountIn);
 
@@ -169,7 +169,7 @@ contract CoinCadenceDCA {
     // Internal Functions   //
     /////////////////////////
 
-    function getFirstAddress(bytes memory path) private pure returns (address) {
+    function _getFirstAddress(bytes memory path) private pure returns (address) {
         require(path.length >= 20, "Path too short");
         address firstAddress;
         assembly {
