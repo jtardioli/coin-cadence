@@ -26,7 +26,7 @@ contract CoinCadenceDCA {
     error CoinCadenceDCA__InvalidAddress();
 
     ////////////////////////
-    // Type               //
+    // Types              //
     ////////////////////////
     enum Frequency {
         Weekly,
@@ -95,6 +95,10 @@ contract CoinCadenceDCA {
             revert CoinCadenceDCA__InsufficientTimeSinceLastRun(timeSinceLastRun, frequencyInSeconds);
         }
 
+        address inputToken = getFirstAddress(job.path);
+        TransferHelper.safeTransferFrom(inputToken, job.owner, address(this), job.amountIn);
+        TransferHelper.safeApprove(inputToken, address(swapRouter), job.amountIn);
+
         ISwapRouter.ExactInputParams memory exactInputParams = ISwapRouter.ExactInputParams({
             path: job.path,
             recipient: job.recipient,
@@ -102,11 +106,6 @@ contract CoinCadenceDCA {
             amountIn: job.amountIn,
             amountOutMinimum: job.amountOutMinimum
         });
-
-        address inputToken = getFirstAddress(job.path);
-
-        TransferHelper.safeTransferFrom(inputToken, job.owner, address(this), job.amountIn);
-        TransferHelper.safeApprove(inputToken, address(swapRouter), job.amountIn);
 
         try swapRouter.exactInput(exactInputParams) {
             job.prevRunTimestamp = job.prevRunTimestamp + frequencyInSeconds;
