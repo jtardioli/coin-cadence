@@ -5,15 +5,7 @@ import {ISwapRouter} from "../integrations/uniswap/interfaces/ISwapRouter.sol";
 import {TransferHelper} from "../integrations/uniswap/libraries/TransferHelper.sol";
 import {Path} from "../integrations/uniswap/libraries/Path.sol";
 
-/* 
-    If I dont let the function input the swap path, then there is no way to know if the most efficient path is being used, 
-    but if I do let the user input the path, then they can input any path they want, which could be inefficient or malicious.
-    What happens if the pool no longer exists
- */
-
-/* how to get all jobs for a user */
-
-/* make sure i am emiitering the correct events */
+/* how to get all jobs for a user? */
 
 contract CoinCadenceDCA {
     //////////////////
