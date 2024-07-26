@@ -120,7 +120,9 @@ contract CoinCadenceDCATest is Test {
         coinCadenceDCA.processJob(jobKey);
     }
 
-    function testErrorIfInsufficientTimeInterval() public {
+    // should do some fuzz tests here
+
+    function testErrorIfInsufficientTimeIntervalForWeekly() public {
         bytes32 jobKey = coinCadenceDCA.createJob(
             wbtcToUsdcPath,
             user,
@@ -141,5 +143,50 @@ contract CoinCadenceDCATest is Test {
         coinCadenceDCA.processJob(jobKey);
     }
 
-    function testProccessJobSuccess() public {}
+    function testErrorIfInsufficientTimeIntervalForBiWeekly() public {
+        uint256 prevRunTimestamp =
+            block.timestamp - coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.Weekly);
+
+        bytes32 jobKey = coinCadenceDCA.createJob(
+            wbtcToUsdcPath,
+            user,
+            block.timestamp + 5 * 60,
+            100000000,
+            0,
+            CoinCadenceDCA.Frequency.BiWeekly,
+            prevRunTimestamp
+        );
+        uint256 timeSinceLastRun = block.timestamp - prevRunTimestamp;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CoinCadenceDCA.CoinCadenceDCA__InsufficientTimeSinceLastRun.selector,
+                timeSinceLastRun,
+                coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.BiWeekly)
+            )
+        );
+        coinCadenceDCA.processJob(jobKey);
+    }
+
+    function testProccessJobSuccess() public {
+        assertEq(usdc.balanceOf(user), 0);
+
+        vm.startPrank(user);
+        wbtc.approve(address(coinCadenceDCA), 5 ether);
+
+        bytes32 jobKey = coinCadenceDCA.createJob(
+            wbtcToUsdcPath,
+            user,
+            block.timestamp + 5 * 60,
+            100000000,
+            0,
+            CoinCadenceDCA.Frequency.Weekly,
+            block.timestamp - coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.BiWeekly)
+        );
+        vm.stopPrank();
+
+        coinCadenceDCA.processJob(jobKey); // this will revert if the swap fails
+
+        assert(usdc.balanceOf(user) > 0);
+    }
 }
