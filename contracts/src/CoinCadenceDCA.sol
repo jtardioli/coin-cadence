@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {ISwapRouter} from "../integrations/uniswap/interfaces/ISwapRouter.sol";
+import {IUniswapV3Factory} from "../integrations/uniswap/interfaces/IUniswapV3Factory.sol";
 import {TransferHelper} from "../integrations/uniswap/libraries/TransferHelper.sol";
 import {Path} from "../integrations/uniswap/libraries/Path.sol";
 
@@ -25,18 +26,16 @@ contract CoinCadenceDCA {
     }
 
     ISwapRouter public immutable swapRouter;
+    IUniswapV3Factory public immutable uniswapFactory;
     mapping(bytes32 => DCAJobProperties) private dcaJobs;
 
     event JobCreated(bytes32 indexed jobKey, address indexed owner);
     event JobDeleted(bytes32 indexed jobKey, address indexed owner);
     event JobSuccess(bytes32 indexed jobKey, address indexed owner);
 
-    constructor(address _swapRouterAddress) {
-        if (_swapRouterAddress == address(0)) {
-            revert CoinCadenceDCA__InvalidAddress();
-        }
-
+    constructor(address _swapRouterAddress, address _factory) {
         swapRouter = ISwapRouter(_swapRouterAddress);
+        uniswapFactory = IUniswapV3Factory(_factory);
     }
 
     function processJob(bytes32 jobKey) external {
@@ -69,6 +68,10 @@ contract CoinCadenceDCA {
         swapRouter.exactInput(exactInputParams);
         job.prevRunTimestamp = job.prevRunTimestamp + job.frequencyInSeconds;
         emit JobSuccess(jobKey, job.owner);
+    }
+
+    function _estimateAmountOut(bytes memory path) public {
+        address pool = uniswapFactory.getPool(_getFirstAddress(path), _getLastAddress(path), _getFee(path));
     }
 
     function createJob(
@@ -127,5 +130,45 @@ contract CoinCadenceDCA {
             firstAddress := shr(96, mload(add(path, 0x20)))
         }
         return firstAddress;
+    }
+
+    function _getLastAddress(bytes memory path) public pure returns (address) {
+        if (path.length < 20) {
+            revert CoinCadenceDCA__PathToShort();
+        }
+        address lastAddress;
+        assembly {
+            let pathLength := mload(path)
+            lastAddress := shr(96, mload(add(path, add(0x20, mul(sub(pathLength, 20), 1)))))
+        }
+        return lastAddress;
+    }
+
+    function _getFee(bytes memory path) public pure returns (uint24) {
+        if (path.length < 43) {
+            revert CoinCadenceDCA__PathToShort();
+        }
+        uint24 fee;
+        assembly {
+            let pathLength := mload(path)
+            let offset := add(0x20, mul(sub(pathLength, 43), 1))
+            offset := add(offset, 20) // skip the first address
+            fee := mload(add(path, offset))
+            fee := shr(232, fee)
+        }
+        return uint24(fee);
+    }
+
+    function _getSecondLastAddress(bytes memory path) public pure returns (address) {
+        if (path.length < 43) {
+            revert CoinCadenceDCA__PathToShort();
+        }
+        address nextAddress;
+        assembly {
+            let pathLength := mload(path)
+            let offset := add(0x20, mul(sub(pathLength, 43), 1))
+            nextAddress := shr(96, mload(add(path, offset)))
+        }
+        return nextAddress;
     }
 }

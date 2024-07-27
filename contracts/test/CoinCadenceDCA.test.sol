@@ -13,6 +13,7 @@ contract CoinCadenceDCATest is Test {
     address public user = makeAddr("user");
 
     address public swapRouterAddr = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+    address public uniswapFactoryAddr = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
     address public wbtcAddress = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
     address public wethAddress = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public usdcAddress = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -25,7 +26,7 @@ contract CoinCadenceDCATest is Test {
     CoinCadenceDCA coinCadenceDCA;
 
     function setUp() public {
-        coinCadenceDCA = new CoinCadenceDCA(swapRouterAddr);
+        coinCadenceDCA = new CoinCadenceDCA(swapRouterAddr, uniswapFactoryAddr);
         deal(wbtcAddress, user, 1 ether);
     }
 
@@ -152,5 +153,15 @@ contract CoinCadenceDCATest is Test {
         console.log("usdc balance after swap: ", usdc.balanceOf(user));
 
         assert(usdc.balanceOf(user) > 0);
+    }
+
+    function testDecodePath() public {
+        address lastAddress = coinCadenceDCA._getLastAddress(wbtcToUsdcPath);
+        uint24 fee = coinCadenceDCA._getFee(wbtcToUsdcPath);
+        address lastSecondAddress = coinCadenceDCA._getSecondLastAddress(wbtcToUsdcPath);
+
+        console.log("lastAddress: ", lastAddress);
+        console.log("fee: ", fee);
+        console.log("lastSecondAddress: ", lastSecondAddress);
     }
 }
