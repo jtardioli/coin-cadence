@@ -7,6 +7,9 @@ import {CoinCadenceDCA} from "../src/CoinCadenceDCA.sol";
 import {IERC20} from "../lib/IERC20.sol";
 
 contract CoinCadenceDCATest is Test {
+    uint256 public constant SECONDS_IN_A_WEEK = 60 * 60 * 24 * 7;
+    uint256 public constant SECONDS_IN_30_MINUTES = 60 * 30;
+
     address public user = makeAddr("user");
 
     address public swapRouterAddr = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
@@ -35,11 +38,11 @@ contract CoinCadenceDCATest is Test {
         bytes32 jobKey = coinCadenceDCA.createJob(
             wbtcToUsdcPath,
             user,
-            block.timestamp + 5 * 60,
+            SECONDS_IN_30_MINUTES,
             100000000,
             0,
-            CoinCadenceDCA.Frequency.Weekly,
-            block.timestamp - coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
+            SECONDS_IN_A_WEEK,
+            block.timestamp - SECONDS_IN_A_WEEK
         );
         vm.stopPrank();
 
@@ -48,14 +51,11 @@ contract CoinCadenceDCATest is Test {
         assertEq(storedJob.path, wbtcToUsdcPath);
         assertEq(storedJob.owner, user);
         assertEq(storedJob.recipient, user);
-        assertEq(storedJob.deadline, block.timestamp + 5 * 60);
+        assertEq(storedJob.secondsToWaitForTx, SECONDS_IN_30_MINUTES);
         assertEq(storedJob.amountIn, 100000000);
         assertEq(storedJob.amountOutMinimum, 0);
-        assertEq(keccak256(abi.encode(storedJob.frequency)), keccak256(abi.encode(CoinCadenceDCA.Frequency.Weekly)));
-        assertEq(
-            storedJob.prevRunTimestamp,
-            block.timestamp - coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
-        );
+        assertEq(storedJob.frequencyInSeconds, SECONDS_IN_A_WEEK);
+        assertEq(storedJob.prevRunTimestamp, block.timestamp - SECONDS_IN_A_WEEK);
         assert(storedJob.initialized);
     }
 
@@ -68,11 +68,11 @@ contract CoinCadenceDCATest is Test {
         bytes32 jobKey = coinCadenceDCA.createJob(
             wbtcToUsdcPath,
             user,
-            block.timestamp + 5 * 60,
+            SECONDS_IN_30_MINUTES,
             100000000,
             0,
-            CoinCadenceDCA.Frequency.Weekly,
-            block.timestamp - coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
+            SECONDS_IN_A_WEEK,
+            block.timestamp - SECONDS_IN_A_WEEK
         );
 
         CoinCadenceDCA.DCAJobProperties memory storedJobBefore = coinCadenceDCA.getJob(jobKey);
@@ -96,11 +96,11 @@ contract CoinCadenceDCATest is Test {
         bytes32 jobKey = coinCadenceDCA.createJob(
             wbtcToUsdcPath,
             user,
-            block.timestamp + 5 * 60,
+            SECONDS_IN_30_MINUTES,
             100000000,
             0,
-            CoinCadenceDCA.Frequency.Weekly,
-            block.timestamp - coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
+            SECONDS_IN_A_WEEK,
+            block.timestamp - SECONDS_IN_A_WEEK
         );
 
         CoinCadenceDCA.DCAJobProperties memory storedJobBefore = coinCadenceDCA.getJob(jobKey);
@@ -122,47 +122,14 @@ contract CoinCadenceDCATest is Test {
 
     // should do some fuzz tests here
 
-    function testErrorIfInsufficientTimeIntervalForWeekly() public {
+    function testErrorIfInsufficientTimeInterval() public {
         bytes32 jobKey = coinCadenceDCA.createJob(
-            wbtcToUsdcPath,
-            user,
-            block.timestamp + 5 * 60,
-            100000000,
-            0,
-            CoinCadenceDCA.Frequency.Weekly,
-            block.timestamp
+            wbtcToUsdcPath, user, block.timestamp + 5 * 60, 100000000, 0, SECONDS_IN_A_WEEK, block.timestamp
         );
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                CoinCadenceDCA.CoinCadenceDCA__InsufficientTimeSinceLastRun.selector,
-                0,
-                coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.Weekly)
-            )
-        );
-        coinCadenceDCA.processJob(jobKey);
-    }
-
-    function testErrorIfInsufficientTimeIntervalForBiWeekly() public {
-        uint256 prevRunTimestamp =
-            block.timestamp - coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.Weekly);
-
-        bytes32 jobKey = coinCadenceDCA.createJob(
-            wbtcToUsdcPath,
-            user,
-            block.timestamp + 5 * 60,
-            100000000,
-            0,
-            CoinCadenceDCA.Frequency.BiWeekly,
-            prevRunTimestamp
-        );
-        uint256 timeSinceLastRun = block.timestamp - prevRunTimestamp;
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                CoinCadenceDCA.CoinCadenceDCA__InsufficientTimeSinceLastRun.selector,
-                timeSinceLastRun,
-                coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.BiWeekly)
+                CoinCadenceDCA.CoinCadenceDCA__InsufficientTimeSinceLastRun.selector, 0, SECONDS_IN_A_WEEK
             )
         );
         coinCadenceDCA.processJob(jobKey);
@@ -180,8 +147,8 @@ contract CoinCadenceDCATest is Test {
             block.timestamp + 5 * 60,
             100000000,
             0,
-            CoinCadenceDCA.Frequency.Weekly,
-            block.timestamp - coinCadenceDCA.getFrequencyToSeconds(CoinCadenceDCA.Frequency.BiWeekly)
+            SECONDS_IN_A_WEEK,
+            block.timestamp - SECONDS_IN_A_WEEK
         );
         vm.stopPrank();
 
