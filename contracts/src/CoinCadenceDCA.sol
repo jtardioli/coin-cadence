@@ -11,6 +11,7 @@ contract CoinCadenceDCA {
     error CoinCadenceDCA__JobAlreadyExists(bytes32 jobKey);
     error CoinCadenceDCA__NotOwner();
     error CoinCadenceDCA__InvalidAddress();
+    error CoinCadenceDCA__PathToShort();
 
     struct DCAJobProperties {
         bytes path;
@@ -121,7 +122,9 @@ contract CoinCadenceDCA {
     }
 
     function _getFirstAddress(bytes memory path) private pure returns (address) {
-        require(path.length >= 20, "Path too short");
+        if (path.length < 20) {
+            revert CoinCadenceDCA__PathToShort();
+        }
         address firstAddress;
         assembly {
             firstAddress := shr(96, mload(add(path, 0x20)))
