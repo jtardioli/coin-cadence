@@ -40,7 +40,6 @@ contract CoinCadenceDCATest is Test {
             user,
             SECONDS_IN_30_MINUTES,
             100000000,
-            0,
             SECONDS_IN_A_WEEK,
             block.timestamp - SECONDS_IN_A_WEEK
         );
@@ -53,7 +52,6 @@ contract CoinCadenceDCATest is Test {
         assertEq(storedJob.recipient, user);
         assertEq(storedJob.secondsToWaitForTx, SECONDS_IN_30_MINUTES);
         assertEq(storedJob.amountIn, 100000000);
-        assertEq(storedJob.amountOutMinimum, 0);
         assertEq(storedJob.frequencyInSeconds, SECONDS_IN_A_WEEK);
         assertEq(storedJob.prevRunTimestamp, block.timestamp - SECONDS_IN_A_WEEK);
         assert(storedJob.initialized);
@@ -70,7 +68,6 @@ contract CoinCadenceDCATest is Test {
             user,
             SECONDS_IN_30_MINUTES,
             100000000,
-            0,
             SECONDS_IN_A_WEEK,
             block.timestamp - SECONDS_IN_A_WEEK
         );
@@ -98,7 +95,6 @@ contract CoinCadenceDCATest is Test {
             user,
             SECONDS_IN_30_MINUTES,
             100000000,
-            0,
             SECONDS_IN_A_WEEK,
             block.timestamp - SECONDS_IN_A_WEEK
         );
@@ -124,7 +120,7 @@ contract CoinCadenceDCATest is Test {
 
     function testErrorIfInsufficientTimeInterval() public {
         bytes32 jobKey = coinCadenceDCA.createJob(
-            wbtcToUsdcPath, user, block.timestamp + 5 * 60, 100000000, 0, SECONDS_IN_A_WEEK, block.timestamp
+            wbtcToUsdcPath, user, SECONDS_IN_30_MINUTES, 100000000, SECONDS_IN_A_WEEK, block.timestamp
         );
 
         vm.expectRevert(
@@ -144,9 +140,8 @@ contract CoinCadenceDCATest is Test {
         bytes32 jobKey = coinCadenceDCA.createJob(
             wbtcToUsdcPath,
             user,
-            block.timestamp + 5 * 60,
+            SECONDS_IN_30_MINUTES,
             100000000,
-            0,
             SECONDS_IN_A_WEEK,
             block.timestamp - SECONDS_IN_A_WEEK
         );

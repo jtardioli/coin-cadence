@@ -19,7 +19,6 @@ contract CoinCadenceDCA {
         address recipient;
         uint256 secondsToWaitForTx;
         uint256 amountIn;
-        uint256 amountOutMinimum;
         uint256 frequencyInSeconds;
         uint256 prevRunTimestamp;
         bool initialized;
@@ -61,7 +60,10 @@ contract CoinCadenceDCA {
             recipient: job.recipient,
             deadline: block.timestamp + job.secondsToWaitForTx,
             amountIn: job.amountIn,
-            amountOutMinimum: job.amountOutMinimum
+            // @audit can't use the same amountOutMinimum for all jobs because price will change
+            //        if the price goes up, the swap will fail and if the price goes down,
+            //        the user will get less than it's worth
+            amountOutMinimum: 0
         });
 
         swapRouter.exactInput(exactInputParams);
@@ -74,7 +76,6 @@ contract CoinCadenceDCA {
         address recipient,
         uint256 secondsToWaitForTx,
         uint256 amountIn,
-        uint256 amountOutMinimum,
         uint256 frequencyInSeconds,
         uint256 prevRunTimestamp
     ) external returns (bytes32) {
@@ -87,10 +88,6 @@ contract CoinCadenceDCA {
             recipient: recipient,
             secondsToWaitForTx: secondsToWaitForTx,
             amountIn: amountIn,
-            // @audit can't use the same amountOutMinimum for all jobs because price will change
-            //        if the price goes up, the swap will fail and if the price goes down,
-            //        the user will get less than it's worth
-            amountOutMinimum: amountOutMinimum,
             frequencyInSeconds: frequencyInSeconds,
             prevRunTimestamp: prevRunTimestamp,
             initialized: true
@@ -103,7 +100,7 @@ contract CoinCadenceDCA {
         return jobKey;
     }
 
-    function deleteJob(bytes32 jobKey) external returns (bytes32) {
+    function deleteJob(bytes32 jobKey) external {
         DCAJobProperties memory job = dcaJobs[jobKey];
         if (!job.initialized) {
             revert CoinCadenceDCA__JobDoesNotExist(jobKey);
