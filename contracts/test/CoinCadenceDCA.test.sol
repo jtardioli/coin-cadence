@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {ISwapRouter} from "../integrations/uniswap/interfaces/ISwapRouter.sol";
+import {ISwapRouter} from "../lib/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {CoinCadenceDCA} from "../src/CoinCadenceDCA.sol";
 import {IERC20} from "../lib/IERC20.sol";

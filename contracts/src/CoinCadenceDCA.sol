@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {ISwapRouter} from "../integrations/uniswap/interfaces/ISwapRouter.sol";
-import {IUniswapV3Factory} from "../integrations/uniswap/interfaces/IUniswapV3Factory.sol";
-import {OracleLibrary} from "../integrations/uniswap/libraries/OracleLibrary.sol";
-import {TransferHelper} from "../integrations/uniswap/libraries/TransferHelper.sol";
-import {Path} from "../integrations/uniswap/libraries/Path.sol";
+import {ISwapRouter} from "../lib/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import {IUniswapV3Factory} from "../lib/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import {OracleLibrary} from "../lib/v3-periphery/contracts/libraries/OracleLibrary.sol";
+import {TransferHelper} from "../lib/v3-periphery/contracts/libraries/TransferHelper.sol";
+import {Path} from "../lib/v3-periphery/contracts/libraries/Path.sol";
 
 contract CoinCadenceDCA {
     error CoinCadenceDCA__InsufficientTimeSinceLastRun(uint256 timeSinceLastRun, uint256 frequencyInSeconds);
