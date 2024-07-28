@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.0;
 
 import {ISwapRouter} from "../integrations/uniswap/interfaces/ISwapRouter.sol";
 import {IUniswapV3Factory} from "../integrations/uniswap/interfaces/IUniswapV3Factory.sol";
+import {OracleLibrary} from "../integrations/uniswap/libraries/OracleLibrary.sol";
 import {TransferHelper} from "../integrations/uniswap/libraries/TransferHelper.sol";
 import {Path} from "../integrations/uniswap/libraries/Path.sol";
 
@@ -70,8 +71,9 @@ contract CoinCadenceDCA {
         emit JobSuccess(jobKey, job.owner);
     }
 
-    function _estimateAmountOut(bytes memory path) public {
+    function _estimateAmountOut(bytes memory path, uint32 secondsAgo) public {
         address pool = uniswapFactory.getPool(_getFirstAddress(path), _getLastAddress(path), _getFee(path));
+       (int24 tick) OracleLibrary.consult(pool, secondsAgo);
     }
 
     function createJob(

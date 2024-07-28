@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.0;
 
 import {ISwapRouter} from "../integrations/uniswap/interfaces/ISwapRouter.sol";
 import {Test, console} from "forge-std/Test.sol";
