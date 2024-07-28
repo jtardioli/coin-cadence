@@ -73,7 +73,7 @@ contract CoinCadenceDCA {
 
     function _estimateAmountOut(bytes memory path, uint32 secondsAgo) public {
         address pool = uniswapFactory.getPool(_getFirstAddress(path), _getLastAddress(path), _getFee(path));
-       (int24 tick) OracleLibrary.consult(pool, secondsAgo);
+        //    (int24 tick) OracleLibrary.consult(pool, secondsAgo);
     }
 
     function createJob(
