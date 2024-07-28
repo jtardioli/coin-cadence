@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity >=0.7.5;
 
 import {ISwapRouter} from "../lib/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {IUniswapV3Factory} from "../lib/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
@@ -8,13 +8,6 @@ import {TransferHelper} from "../lib/v3-periphery/contracts/libraries/TransferHe
 import {Path} from "../lib/v3-periphery/contracts/libraries/Path.sol";
 
 contract CoinCadenceDCA {
-    error CoinCadenceDCA__InsufficientTimeSinceLastRun(uint256 timeSinceLastRun, uint256 frequencyInSeconds);
-    error CoinCadenceDCA__JobDoesNotExist(bytes32 jobKey);
-    error CoinCadenceDCA__JobAlreadyExists(bytes32 jobKey);
-    error CoinCadenceDCA__NotOwner();
-    error CoinCadenceDCA__InvalidAddress();
-    error CoinCadenceDCA__PathToShort();
-
     struct DCAJobProperties {
         bytes path;
         address owner;
@@ -42,15 +35,11 @@ contract CoinCadenceDCA {
     function processJob(bytes32 jobKey) external {
         DCAJobProperties memory job = dcaJobs[jobKey];
 
-        if (!job.initialized) {
-            revert CoinCadenceDCA__JobDoesNotExist(jobKey);
-        }
+        require(!job.initialized, "Job does not exist");
 
         uint256 timeSinceLastRun = block.timestamp - job.prevRunTimestamp;
 
-        if (timeSinceLastRun < job.frequencyInSeconds) {
-            revert CoinCadenceDCA__InsufficientTimeSinceLastRun(timeSinceLastRun, job.frequencyInSeconds);
-        }
+        require(timeSinceLastRun < job.frequencyInSeconds, "Insufficient time since last run");
 
         address inputToken = _getFirstAddress(job.path);
         TransferHelper.safeTransferFrom(inputToken, job.owner, address(this), job.amountIn);
@@ -107,13 +96,8 @@ contract CoinCadenceDCA {
 
     function deleteJob(bytes32 jobKey) external {
         DCAJobProperties memory job = dcaJobs[jobKey];
-        if (!job.initialized) {
-            revert CoinCadenceDCA__JobDoesNotExist(jobKey);
-        }
-
-        if (job.owner != msg.sender) {
-            revert CoinCadenceDCA__NotOwner();
-        }
+        require(!job.initialized, "Job does not exist");
+        require(job.owner != msg.sender, "Not owner");
 
         delete dcaJobs[jobKey];
         emit JobDeleted(jobKey, job.owner);
@@ -124,9 +108,6 @@ contract CoinCadenceDCA {
     }
 
     function _getFirstAddress(bytes memory path) private pure returns (address) {
-        if (path.length < 20) {
-            revert CoinCadenceDCA__PathToShort();
-        }
         address firstAddress;
         assembly {
             firstAddress := shr(96, mload(add(path, 0x20)))
@@ -135,9 +116,6 @@ contract CoinCadenceDCA {
     }
 
     function _getLastAddress(bytes memory path) public pure returns (address) {
-        if (path.length < 20) {
-            revert CoinCadenceDCA__PathToShort();
-        }
         address lastAddress;
         assembly {
             let pathLength := mload(path)
@@ -147,9 +125,6 @@ contract CoinCadenceDCA {
     }
 
     function _getFee(bytes memory path) public pure returns (uint24) {
-        if (path.length < 43) {
-            revert CoinCadenceDCA__PathToShort();
-        }
         uint24 fee;
         assembly {
             let pathLength := mload(path)
@@ -162,9 +137,6 @@ contract CoinCadenceDCA {
     }
 
     function _getSecondLastAddress(bytes memory path) public pure returns (address) {
-        if (path.length < 43) {
-            revert CoinCadenceDCA__PathToShort();
-        }
         address nextAddress;
         assembly {
             let pathLength := mload(path)
