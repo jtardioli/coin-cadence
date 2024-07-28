@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.7.5;
+pragma abicoder v2;
 
 import {ISwapRouter} from "../lib/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -85,7 +86,7 @@ contract CoinCadenceDCATest is Test {
 
     function testDeleteJobRevertsIfNoJob() public {
         bytes32 jobKey = keccak256(abi.encodePacked("test"));
-        vm.expectRevert(abi.encodeWithSelector(CoinCadenceDCA.CoinCadenceDCA__JobDoesNotExist.selector, jobKey));
+        vm.expectRevert("Job does not exist");
         coinCadenceDCA.deleteJob(jobKey);
     }
 
@@ -104,7 +105,7 @@ contract CoinCadenceDCATest is Test {
         assert(storedJobBefore.initialized);
         vm.stopPrank();
 
-        vm.expectRevert(abi.encodeWithSelector(CoinCadenceDCA.CoinCadenceDCA__NotOwner.selector));
+        vm.expectRevert("Not owner");
         coinCadenceDCA.deleteJob(jobKey);
     }
 
@@ -113,7 +114,7 @@ contract CoinCadenceDCATest is Test {
     /////////////////
     function testErrorIfJobDoesNotExistWhileJobRunning() public {
         bytes32 jobKey = keccak256(abi.encodePacked("test"));
-        vm.expectRevert(abi.encodeWithSelector(CoinCadenceDCA.CoinCadenceDCA__JobDoesNotExist.selector, jobKey));
+        vm.expectRevert("Job does not exist");
         coinCadenceDCA.processJob(jobKey);
     }
 
@@ -124,11 +125,7 @@ contract CoinCadenceDCATest is Test {
             wbtcToUsdcPath, user, SECONDS_IN_30_MINUTES, 100000000, SECONDS_IN_A_WEEK, block.timestamp
         );
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                CoinCadenceDCA.CoinCadenceDCA__InsufficientTimeSinceLastRun.selector, 0, SECONDS_IN_A_WEEK
-            )
-        );
+        vm.expectRevert("Insufficient time since last run");
         coinCadenceDCA.processJob(jobKey);
     }
 
