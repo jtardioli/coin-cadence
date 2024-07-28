@@ -7,6 +7,7 @@ import {IUniswapV3Factory} from "../lib/v3-core/contracts/interfaces/IUniswapV3F
 import {OracleLibrary} from "../lib/v3-periphery/contracts/libraries/OracleLibrary.sol";
 import {TransferHelper} from "../lib/v3-periphery/contracts/libraries/TransferHelper.sol";
 import {Path} from "../lib/v3-periphery/contracts/libraries/Path.sol";
+import {Quoter} from "../lib/v3-periphery/contracts/lens/Quoter.sol";
 
 contract CoinCadenceDCA {
     struct DCAJobProperties {
@@ -36,11 +37,12 @@ contract CoinCadenceDCA {
     function processJob(bytes32 jobKey) external {
         DCAJobProperties memory job = dcaJobs[jobKey];
 
-        require(!job.initialized, "Job does not exist");
+        require(job.initialized, "Job does not exist");
 
         uint256 timeSinceLastRun = block.timestamp - job.prevRunTimestamp;
 
-        require(timeSinceLastRun < job.frequencyInSeconds, "Insufficient time since last run");
+        // need to think more about if this should be > or >=
+        require(timeSinceLastRun >= job.frequencyInSeconds, "Insufficient time since last run");
 
         address inputToken = _getFirstAddress(job.path);
         TransferHelper.safeTransferFrom(inputToken, job.owner, address(this), job.amountIn);
@@ -61,9 +63,20 @@ contract CoinCadenceDCA {
         emit JobSuccess(jobKey, job.owner);
     }
 
-    function _estimateAmountOut(bytes memory path, uint32 secondsAgo) public {
-        address pool = uniswapFactory.getPool(_getFirstAddress(path), _getLastAddress(path), _getFee(path));
-        //    (int24 tick) OracleLibrary.consult(pool, secondsAgo);
+    function _estimateAmountOut(bytes memory path, uint256 amountIn, uint32 secondsAgo)
+        public
+        view
+        returns (uint256 amountOutEstimate)
+    {
+        address pool = uniswapFactory.getPool(_getSecondLastAddress(path), _getLastAddress(path), _getFee(path));
+        (int24 tick,) = OracleLibrary.consult(pool, secondsAgo);
+
+        uint128 amountIn128 = uint128(amountIn);
+
+        uint256 amountOut =
+            OracleLibrary.getQuoteAtTick(tick, amountIn128, _getSecondLastAddress(path), _getLastAddress(path));
+
+        return amountOut;
     }
 
     function createJob(
@@ -97,8 +110,8 @@ contract CoinCadenceDCA {
 
     function deleteJob(bytes32 jobKey) external {
         DCAJobProperties memory job = dcaJobs[jobKey];
-        require(!job.initialized, "Job does not exist");
-        require(job.owner != msg.sender, "Not owner");
+        require(job.initialized, "Job does not exist");
+        require(job.owner == msg.sender, "Not owner");
 
         delete dcaJobs[jobKey];
         emit JobDeleted(jobKey, job.owner);

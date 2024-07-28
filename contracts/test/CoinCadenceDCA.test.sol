@@ -161,4 +161,9 @@ contract CoinCadenceDCATest is Test {
         console.log("fee: ", fee);
         console.log("lastSecondAddress: ", lastSecondAddress);
     }
+
+    function testEstimateAmountOut() public {
+        uint256 amountOut = coinCadenceDCA._estimateAmountOut(wbtcToUsdcPath, 1000000000000000000, 36000);
+        console.log("amountOut: ", amountOut);
+    }
 }
