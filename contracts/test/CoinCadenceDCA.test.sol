@@ -169,16 +169,6 @@ contract CoinCadenceDCATest is Test {
         assert(usdc.balanceOf(user) > 0);
     }
 
-    function testDecodePath() public {
-        address lastAddress = coinCadenceDCA._getLastAddress(wbtcToUsdcPath);
-        uint24 fee = coinCadenceDCA._getFee(wbtcToUsdcPath);
-        address lastSecondAddress = coinCadenceDCA._getSecondLastAddress(wbtcToUsdcPath);
-
-        console.log("lastAddress: ", lastAddress);
-        console.log("fee: ", fee);
-        console.log("lastSecondAddress: ", lastSecondAddress);
-    }
-
     function testEstimateAmountOut() public {
         uint256 amountOut = coinCadenceDCA._estimateAmountOut(wbtcToUsdcPath, 100000000, SECONDS_IN_1_HOUR);
         console.log("amountOut: ", amountOut);

@@ -142,35 +142,4 @@ contract CoinCadenceDCA {
         }
         return firstAddress;
     }
-
-    function _getLastAddress(bytes memory path) public pure returns (address) {
-        address lastAddress;
-        assembly {
-            let pathLength := mload(path)
-            lastAddress := shr(96, mload(add(path, add(0x20, mul(sub(pathLength, 20), 1)))))
-        }
-        return lastAddress;
-    }
-
-    function _getFee(bytes memory path) public pure returns (uint24) {
-        uint24 fee;
-        assembly {
-            let pathLength := mload(path)
-            let offset := add(0x20, mul(sub(pathLength, 43), 1))
-            offset := add(offset, 20) // skip the first address
-            fee := mload(add(path, offset))
-            fee := shr(232, fee)
-        }
-        return uint24(fee);
-    }
-
-    function _getSecondLastAddress(bytes memory path) public pure returns (address) {
-        address nextAddress;
-        assembly {
-            let pathLength := mload(path)
-            let offset := add(0x20, mul(sub(pathLength, 43), 1))
-            nextAddress := shr(96, mload(add(path, offset)))
-        }
-        return nextAddress;
-    }
 }
