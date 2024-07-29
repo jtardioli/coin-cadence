@@ -1,5 +1,5 @@
 ### Limitations
 
-    If I dont let the function input the swap path, then there is no way to know if the most efficient path is being used,
-    but if I do let the user input the path, then they can input any path they want, which could be inefficient or malicious.
-    What happens if the pool no longer exists
+1. The optimal swap path could change over time, because when you create a job the swap path is saved with the job, this means that you may not be using the optimal swaps. This was a trade off made for security because if we inputed the best swap path then anyone could call the `processJob()` function and change the path of your swap.
+
+2.
