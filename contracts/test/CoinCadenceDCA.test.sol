@@ -11,7 +11,7 @@ contract CoinCadenceDCATest is Test {
     uint256 public constant SECONDS_IN_A_WEEK = 60 * 60 * 24 * 7;
     uint256 public constant SECONDS_IN_30_MINUTES = 60 * 30;
     uint32 public constant SECONDS_IN_1_HOUR = 60 * 60;
-    uint32 public constant PERCENT_SLIPPAGE = 3;
+    uint32 public constant BPS_SLIPPAGE = 300;
 
     address public user = makeAddr("user");
 
@@ -46,7 +46,7 @@ contract CoinCadenceDCATest is Test {
             100000000,
             SECONDS_IN_A_WEEK,
             SECONDS_IN_1_HOUR,
-            PERCENT_SLIPPAGE,
+            BPS_SLIPPAGE,
             block.timestamp - SECONDS_IN_A_WEEK
         );
         vm.stopPrank();
@@ -76,7 +76,7 @@ contract CoinCadenceDCATest is Test {
             100000000,
             SECONDS_IN_A_WEEK,
             SECONDS_IN_1_HOUR,
-            PERCENT_SLIPPAGE,
+            BPS_SLIPPAGE,
             block.timestamp - SECONDS_IN_A_WEEK
         );
 
@@ -105,7 +105,7 @@ contract CoinCadenceDCATest is Test {
             100000000,
             SECONDS_IN_A_WEEK,
             SECONDS_IN_1_HOUR,
-            PERCENT_SLIPPAGE,
+            BPS_SLIPPAGE,
             block.timestamp - SECONDS_IN_A_WEEK
         );
 
@@ -136,7 +136,7 @@ contract CoinCadenceDCATest is Test {
             100000000,
             SECONDS_IN_A_WEEK,
             SECONDS_IN_1_HOUR,
-            PERCENT_SLIPPAGE,
+            BPS_SLIPPAGE,
             block.timestamp
         );
 
@@ -157,7 +157,7 @@ contract CoinCadenceDCATest is Test {
             100000000,
             SECONDS_IN_A_WEEK,
             SECONDS_IN_1_HOUR,
-            PERCENT_SLIPPAGE,
+            BPS_SLIPPAGE,
             block.timestamp - SECONDS_IN_A_WEEK
         );
         vm.stopPrank();

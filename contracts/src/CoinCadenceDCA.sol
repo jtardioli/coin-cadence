@@ -19,7 +19,7 @@ contract CoinCadenceDCA {
         uint256 frequencyInSeconds;
         uint256 prevRunTimestamp;
         uint32 arithmeticMeanTickSecondsAgo;
-        uint32 percentSlippage;
+        uint32 bpsSlippage;
         bool initialized;
     }
 
@@ -50,7 +50,7 @@ contract CoinCadenceDCA {
         TransferHelper.safeTransferFrom(inputToken, job.owner, address(this), job.amountIn);
 
         uint256 estimatedAmountOut = _estimateAmountOut(job.path, job.amountIn, job.arithmeticMeanTickSecondsAgo);
-        uint256 amountOutMinimum = estimatedAmountOut - (estimatedAmountOut * job.percentSlippage / 100);
+        uint256 amountOutMinimum = estimatedAmountOut - (estimatedAmountOut * job.bpsSlippage / 10000);
 
         ISwapRouter.ExactInputParams memory exactInputParams = ISwapRouter.ExactInputParams({
             path: job.path,
@@ -96,7 +96,7 @@ contract CoinCadenceDCA {
         uint256 amountIn,
         uint256 frequencyInSeconds,
         uint32 arithmeticMeanTickSecondsAgo,
-        uint32 percentSlippage,
+        uint32 bpsSlippage,
         uint256 prevRunTimestamp
     ) external returns (bytes32) {
         address inputToken = _getFirstAddress(path);
@@ -111,7 +111,7 @@ contract CoinCadenceDCA {
             frequencyInSeconds: frequencyInSeconds,
             prevRunTimestamp: prevRunTimestamp,
             arithmeticMeanTickSecondsAgo: arithmeticMeanTickSecondsAgo,
-            percentSlippage: percentSlippage,
+            bpsSlippage: bpsSlippage,
             initialized: true
         });
 
