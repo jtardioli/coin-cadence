@@ -10,6 +10,8 @@ import {IERC20} from "../lib/IERC20.sol";
 contract CoinCadenceDCATest is Test {
     uint256 public constant SECONDS_IN_A_WEEK = 60 * 60 * 24 * 7;
     uint256 public constant SECONDS_IN_30_MINUTES = 60 * 30;
+    uint32 public constant SECONDS_IN_1_HOUR = 60 * 60;
+    uint32 public constant PERCENT_SLIPPAGE = 3;
 
     address public user = makeAddr("user");
 
@@ -43,6 +45,8 @@ contract CoinCadenceDCATest is Test {
             SECONDS_IN_30_MINUTES,
             100000000,
             SECONDS_IN_A_WEEK,
+            SECONDS_IN_1_HOUR,
+            PERCENT_SLIPPAGE,
             block.timestamp - SECONDS_IN_A_WEEK
         );
         vm.stopPrank();
@@ -71,6 +75,8 @@ contract CoinCadenceDCATest is Test {
             SECONDS_IN_30_MINUTES,
             100000000,
             SECONDS_IN_A_WEEK,
+            SECONDS_IN_1_HOUR,
+            PERCENT_SLIPPAGE,
             block.timestamp - SECONDS_IN_A_WEEK
         );
 
@@ -98,6 +104,8 @@ contract CoinCadenceDCATest is Test {
             SECONDS_IN_30_MINUTES,
             100000000,
             SECONDS_IN_A_WEEK,
+            SECONDS_IN_1_HOUR,
+            PERCENT_SLIPPAGE,
             block.timestamp - SECONDS_IN_A_WEEK
         );
 
@@ -122,7 +130,14 @@ contract CoinCadenceDCATest is Test {
 
     function testErrorIfInsufficientTimeInterval() public {
         bytes32 jobKey = coinCadenceDCA.createJob(
-            wbtcToUsdcPath, user, SECONDS_IN_30_MINUTES, 100000000, SECONDS_IN_A_WEEK, block.timestamp
+            wbtcToUsdcPath,
+            user,
+            SECONDS_IN_30_MINUTES,
+            100000000,
+            SECONDS_IN_A_WEEK,
+            SECONDS_IN_1_HOUR,
+            PERCENT_SLIPPAGE,
+            block.timestamp
         );
 
         vm.expectRevert("Insufficient time since last run");
@@ -141,6 +156,8 @@ contract CoinCadenceDCATest is Test {
             SECONDS_IN_30_MINUTES,
             100000000,
             SECONDS_IN_A_WEEK,
+            SECONDS_IN_1_HOUR,
+            PERCENT_SLIPPAGE,
             block.timestamp - SECONDS_IN_A_WEEK
         );
         vm.stopPrank();
@@ -163,7 +180,7 @@ contract CoinCadenceDCATest is Test {
     }
 
     function testEstimateAmountOut() public {
-        uint256 amountOut = coinCadenceDCA._estimateAmountOut(wbtcToUsdcPath, 1000000000000000000, 36000);
+        uint256 amountOut = coinCadenceDCA._estimateAmountOut(wbtcToUsdcPath, 100000000, SECONDS_IN_1_HOUR);
         console.log("amountOut: ", amountOut);
     }
 }

@@ -18,6 +18,8 @@ contract CoinCadenceDCA {
         uint256 amountIn;
         uint256 frequencyInSeconds;
         uint256 prevRunTimestamp;
+        uint32 arithmeticMeanTickSecondsAgo;
+        uint32 percentSlippage;
         bool initialized;
     }
 
@@ -47,15 +49,15 @@ contract CoinCadenceDCA {
         address inputToken = _getFirstAddress(job.path);
         TransferHelper.safeTransferFrom(inputToken, job.owner, address(this), job.amountIn);
 
+        uint256 estimatedAmountOut = _estimateAmountOut(job.path, job.amountIn, job.arithmeticMeanTickSecondsAgo);
+        uint256 amountOutMinimum = estimatedAmountOut - (estimatedAmountOut * job.percentSlippage / 100);
+
         ISwapRouter.ExactInputParams memory exactInputParams = ISwapRouter.ExactInputParams({
             path: job.path,
             recipient: job.recipient,
             deadline: block.timestamp + job.secondsToWaitForTx,
             amountIn: job.amountIn,
-            // @audit can't use the same amountOutMinimum for all jobs because price will change
-            //        if the price goes up, the swap will fail and if the price goes down,
-            //        the user will get less than it's worth
-            amountOutMinimum: 0
+            amountOutMinimum: amountOutMinimum
         });
 
         swapRouter.exactInput(exactInputParams);
@@ -68,15 +70,23 @@ contract CoinCadenceDCA {
         view
         returns (uint256 amountOutEstimate)
     {
-        address pool = uniswapFactory.getPool(_getSecondLastAddress(path), _getLastAddress(path), _getFee(path));
-        (int24 tick,) = OracleLibrary.consult(pool, secondsAgo);
+        while (true) {
+            bool hasMultiplePools = Path.hasMultiplePools(path);
 
-        uint128 amountIn128 = uint128(amountIn);
+            (address tokenIn, address tokenOut, uint24 fee) = Path.decodeFirstPool(path);
+            address pool = uniswapFactory.getPool(tokenIn, tokenOut, fee);
+            (int24 tick,) = OracleLibrary.consult(pool, secondsAgo);
+            uint128 amountIn128 = uint128(amountIn);
+            uint256 amountOut = OracleLibrary.getQuoteAtTick(tick, amountIn128, tokenIn, tokenOut);
 
-        uint256 amountOut =
-            OracleLibrary.getQuoteAtTick(tick, amountIn128, _getSecondLastAddress(path), _getLastAddress(path));
-
-        return amountOut;
+            // decide whether to continue or terminate
+            if (hasMultiplePools) {
+                amountIn = amountOut;
+                path = Path.skipToken(path);
+            } else {
+                return amountOut;
+            }
+        }
     }
 
     function createJob(
@@ -85,6 +95,8 @@ contract CoinCadenceDCA {
         uint256 secondsToWaitForTx,
         uint256 amountIn,
         uint256 frequencyInSeconds,
+        uint32 arithmeticMeanTickSecondsAgo,
+        uint32 percentSlippage,
         uint256 prevRunTimestamp
     ) external returns (bytes32) {
         address inputToken = _getFirstAddress(path);
@@ -98,6 +110,8 @@ contract CoinCadenceDCA {
             amountIn: amountIn,
             frequencyInSeconds: frequencyInSeconds,
             prevRunTimestamp: prevRunTimestamp,
+            arithmeticMeanTickSecondsAgo: arithmeticMeanTickSecondsAgo,
+            percentSlippage: percentSlippage,
             initialized: true
         });
 
