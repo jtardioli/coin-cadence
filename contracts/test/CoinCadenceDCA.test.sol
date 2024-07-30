@@ -126,8 +126,6 @@ contract CoinCadenceDCATest is Test {
         coinCadenceDCA.processJob(jobKey);
     }
 
-    // should do some fuzz tests here
-
     function testErrorIfInsufficientTimeInterval() public {
         bytes32 jobKey = coinCadenceDCA.createJob(
             wbtcToUsdcPath,
@@ -162,15 +160,8 @@ contract CoinCadenceDCATest is Test {
         );
         vm.stopPrank();
 
-        coinCadenceDCA.processJob(jobKey); // this will revert if the swap fails
-
-        console.log("usdc balance after swap: ", usdc.balanceOf(user));
+        coinCadenceDCA.processJob(jobKey);
 
         assert(usdc.balanceOf(user) > 0);
-    }
-
-    function testEstimateAmountOut() public {
-        uint256 amountOut = coinCadenceDCA._estimateAmountOut(wbtcToUsdcPath, 100000000, SECONDS_IN_1_HOUR);
-        console.log("amountOut: ", amountOut);
     }
 }

@@ -65,30 +65,6 @@ contract CoinCadenceDCA {
         emit JobSuccess(jobKey, job.owner);
     }
 
-    function _estimateAmountOut(bytes memory path, uint256 amountIn, uint32 secondsAgo)
-        public
-        view
-        returns (uint256 amountOutEstimate)
-    {
-        while (true) {
-            bool hasMultiplePools = Path.hasMultiplePools(path);
-
-            (address tokenIn, address tokenOut, uint24 fee) = Path.decodeFirstPool(path);
-            address pool = uniswapFactory.getPool(tokenIn, tokenOut, fee);
-            (int24 tick,) = OracleLibrary.consult(pool, secondsAgo);
-            uint128 amountIn128 = uint128(amountIn);
-            uint256 amountOut = OracleLibrary.getQuoteAtTick(tick, amountIn128, tokenIn, tokenOut);
-
-            // decide whether to continue or terminate
-            if (hasMultiplePools) {
-                amountIn = amountOut;
-                path = Path.skipToken(path);
-            } else {
-                return amountOut;
-            }
-        }
-    }
-
     function createJob(
         bytes memory path,
         address recipient,
@@ -141,5 +117,29 @@ contract CoinCadenceDCA {
             firstAddress := shr(96, mload(add(path, 0x20)))
         }
         return firstAddress;
+    }
+
+    function _estimateAmountOut(bytes memory path, uint256 amountIn, uint32 secondsAgo)
+        private
+        view
+        returns (uint256 amountOutEstimate)
+    {
+        while (true) {
+            bool hasMultiplePools = Path.hasMultiplePools(path);
+
+            (address tokenIn, address tokenOut, uint24 fee) = Path.decodeFirstPool(path);
+            address pool = uniswapFactory.getPool(tokenIn, tokenOut, fee);
+            (int24 tick,) = OracleLibrary.consult(pool, secondsAgo);
+            uint128 amountIn128 = uint128(amountIn);
+            uint256 amountOut = OracleLibrary.getQuoteAtTick(tick, amountIn128, tokenIn, tokenOut);
+
+            // decide whether to continue or terminate
+            if (hasMultiplePools) {
+                amountIn = amountOut;
+                path = Path.skipToken(path);
+            } else {
+                return amountOut;
+            }
+        }
     }
 }
